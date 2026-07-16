@@ -1,5 +1,10 @@
 const defaults = {
   tasks: [
+codex/create-proposal-for-client-management-tools-9rnlng
+codex/create-proposal-for-client-management-tools-vzdnel
+codex/create-proposal-for-client-management-tools-rdmhq8
+main
+main
     { id: 1, title: 'Review “Road to Mainnet” campaign brief', meta: 'Content Strategist · Due today', type: 'Review', icon: '✦', owner: 'MC' },
     { id: 2, title: 'Approve response to sentiment shift', meta: 'Community Guardian · Detected 8 min ago', type: 'Urgent', icon: '◌', owner: 'AM' },
     { id: 3, title: 'Confirm ETHGlobal side event partnership', meta: 'Partnership Scout · Due in 2 hours', type: 'Review', icon: '◇', owner: 'AM' },
@@ -52,18 +57,23 @@ const defaults = {
   completed: 18
 };
 
+codex/create-proposal-for-client-management-tools-9rnlng
 const STATE_KEY = 'wave-state-v3';
-
+codex/create-proposal-for-client-management-tools-vzdnel
+main
 const clone = (value) => typeof structuredClone === 'function'
   ? structuredClone(value)
   : JSON.parse(JSON.stringify(value));
 
 function readStoredState() {
   try {
+codex/create-proposal-for-client-management-tools-9rnlng
     const saved = JSON.parse(window.localStorage.getItem(STATE_KEY) || 'null');
     if (!saved || typeof saved !== 'object') return null;
     const arrays = ['tasks', 'agents', 'activities', 'content', 'signals', 'leads', 'events', 'customers', 'invoices'];
     return arrays.every((key) => saved[key] === undefined || Array.isArray(saved[key])) ? saved : null;
+    return JSON.parse(window.localStorage.getItem('wave-state') || 'null');
+ main
   } catch (error) {
     console.warn('Wave could not read saved workspace data. Starting with demo data.', error);
     return null;
@@ -74,19 +84,36 @@ const stored = readStoredState();
 let state = { ...clone(defaults), ...(stored || {}) };
 Object.keys(defaults).forEach((key) => {
   if (state[key] === undefined) state[key] = clone(defaults[key]);
+codex/create-proposal-for-client-management-tools-9rnlng
+const stored = JSON.parse(localStorage.getItem('wave-state') || 'null');
+let state = { ...structuredClone(defaults), ...(stored || {}) };
+Object.keys(defaults).forEach((key) => {
+  if (state[key] === undefined) state[key] = structuredClone(defaults[key]);
+main
+main
 });
 let currentFilter = 'All';
 let currentPage = 'Command Center';
 const homeMarkup = document.querySelector('#pageContent').innerHTML;
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => [...document.querySelectorAll(selector)];
+codex/create-proposal-for-client-management-tools-9rnlng
 const persist = () => {
   try {
     window.localStorage.setItem(STATE_KEY, JSON.stringify(state));
+codex/create-proposal-for-client-management-tools-vzdnel
+const persist = () => {
+  try {
+    window.localStorage.setItem('wave-state', JSON.stringify(state));
+main
   } catch (error) {
     console.warn('Wave could not save workspace data in this browser.', error);
   }
 };
+codex/create-proposal-for-client-management-tools-9rnlng
+const persist = () => localStorage.setItem('wave-state', JSON.stringify(state));
+main
+main
 const money = (value) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(value);
 
 function escapeHtml(value) {
@@ -102,13 +129,18 @@ function toast(message) {
   window.toastTimer = setTimeout(() => $('#toast').classList.remove('show'), 3000);
 }
 
+codex/create-proposal-for-client-management-tools-9rnlng
+codex/create-proposal-for-client-management-tools-vzdnel
+main
 function acknowledge(button, message) {
   button.classList.remove('button-pulse');
   void button.offsetWidth;
   button.classList.add('button-pulse');
   toast(message);
 }
-
+codex/create-proposal-for-client-management-tools-9rnlng
+main
+main
 function recordActivity(icon, text) {
   state.activities.unshift({ icon, text, time: 'now' });
   persist();
@@ -270,7 +302,15 @@ function attachModuleEvents(page) {
   $$('[data-approve-invoice]').forEach((button) => button.addEventListener('click', () => { const invoice = state.invoices.find((item) => item.id === Number(button.dataset.approveInvoice)); invoice.status = 'Awaiting second approval'; recordActivity('$', `Invoice approved: ${invoice.vendor} ${money(invoice.amount)}`); navigate('Finance'); toast('First approval recorded. A second reviewer was notified.'); }));
   $('#uploadInvoice')?.addEventListener('click', () => toast('Invoice intake will extract fields and match the related contract.'));
   $('#exportReport')?.addEventListener('click', () => { const report = `Wave outcome report\nApproved outcomes: ${state.completed}\nEstimated time saved: 41h\nApproval rate: 92%`; const link = document.createElement('a'); link.href = URL.createObjectURL(new Blob([report], { type: 'text/plain' })); link.download = 'wave-outcome-report.txt'; link.click(); URL.revokeObjectURL(link.href); toast('Outcome report exported.'); });
+codex/create-proposal-for-client-management-tools-9rnlng
   $('#resetDemo')?.addEventListener('click', () => { try { window.localStorage.removeItem(STATE_KEY); } catch (error) { console.warn(error); } toast('Demo data reset. Reloading…'); setTimeout(() => location.reload(), 700); });
+  
+  codex/create-proposal-for-client-management-tools-vzdnel
+  $('#resetDemo')?.addEventListener('click', () => { try { window.localStorage.removeItem('wave-state'); } catch (error) { console.warn(error); } toast('Demo data reset. Reloading…'); setTimeout(() => location.reload(), 700); });
+  
+  $('#resetDemo')?.addEventListener('click', () => { localStorage.removeItem('wave-state'); toast('Demo data reset. Reloading…'); setTimeout(() => location.reload(), 700); });
+ main
+ main
   if (page === 'Settings') renderAgents();
 }
 
@@ -288,8 +328,11 @@ function navigate(page) {
 
 function openTaskDialog() {
   $('#taskDate').value = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
+codex/create-proposal-for-client-management-tools-9rnlng
   if (typeof $('#taskDialog').showModal === 'function') $('#taskDialog').showModal();
   else $('#taskDialog').setAttribute('open', '');
+  $('#taskDialog').showModal();
+main
   setTimeout(() => $('#taskTitle').focus(), 50);
 }
 
@@ -321,9 +364,15 @@ const pages = ['Command Center', ...Object.keys(views)];
 function renderCommands(query) {
   const matches = pages.filter((page) => page.toLowerCase().includes(query.toLowerCase()));
   $('#commandResults').innerHTML = `<div class="command-group"><div class="command-label">Navigate</div>${matches.map((page) => `<button class="command-item" data-command="${page}"><span>→</span><div><b>${page}</b><small>Open workspace module</small></div></button>`).join('') || '<div class="command-label">No matching commands</div>'}</div>`;
+codex/create-proposal-for-client-management-tools-9rnlng
   $$('[data-command]').forEach((button) => button.addEventListener('click', () => { if (typeof commandDialog.close === 'function') commandDialog.close(); else commandDialog.removeAttribute('open'); navigate(button.dataset.command); }));
 }
 function openCommands() { if (typeof commandDialog.showModal === 'function') commandDialog.showModal(); else commandDialog.setAttribute('open', ''); $('#commandInput').value = ''; renderCommands(''); setTimeout(() => $('#commandInput').focus(), 20); }
+    
+  $$('[data-command]').forEach((button) => button.addEventListener('click', () => { commandDialog.close(); navigate(button.dataset.command); }));
+}
+function openCommands() { commandDialog.showModal(); $('#commandInput').value = ''; renderCommands(''); setTimeout(() => $('#commandInput').focus(), 20); }
+main
 $('#searchTrigger').addEventListener('click', openCommands);
 $('#commandInput').addEventListener('input', (event) => renderCommands(event.target.value));
 document.addEventListener('keydown', (event) => { if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') { event.preventDefault(); openCommands(); } });
@@ -331,6 +380,9 @@ $('#notificationButton').addEventListener('click', () => $('#notificationPanel')
 $('#closeNotifications').addEventListener('click', () => $('#notificationPanel').classList.remove('show'));
 $('#mobileMenu').addEventListener('click', () => $('#sidebar').classList.toggle('open'));
 
+codex/create-proposal-for-client-management-tools-9rnlng
+codex/create-proposal-for-client-management-tools-vzdnel
+main
 // Every visible control should acknowledge a click. Feature-specific handlers above
 // stop here via data attributes/IDs; these handlers cover secondary prototype controls.
 $('#workspaceButton').addEventListener('click', (event) => acknowledge(event.currentTarget, 'Nova Protocol is the active demo workspace.'));
@@ -360,5 +412,81 @@ document.addEventListener('click', (event) => {
 });
 
 attachHomeEvents();
+codex/create-proposal-for-client-management-tools-9rnlng
 window.WAVE_READY = true;
 document.documentElement.classList.add('wave-ready');
+attachHomeEvents();
+    {id:1,title:'Review “Road to Mainnet” campaign brief',meta:'Content Strategist · Due today',type:'Review',icon:'✦',owner:'MC'},
+    {id:2,title:'Approve response to sentiment shift',meta:'Community Guardian · Detected 8 min ago',type:'Urgent',icon:'◌',owner:'AM'},
+    {id:3,title:'Confirm ETHGlobal side event partnership',meta:'Partnership Scout · Due in 2 hours',type:'Review',icon:'◇',owner:'AM'},
+    {id:4,title:'Review July community rewards shortlist',meta:'Community Guardian · Due tomorrow',type:'Review',icon:'♙',owner:'JL'},
+    {id:5,title:'Approve Q2 ecosystem recap thread',meta:'Content Strategist · Due tomorrow',type:'Standard',icon:'✦',owner:'MC'},
+    {id:6,title:'Respond to new integration opportunity',meta:'Partnership Scout · Added 1 hour ago',type:'Urgent',icon:'◇',owner:'AM'}
+  ],
+  agents:[
+    {name:'Content Strategist',status:'Drafting campaign',icon:'✦',color:'purple',active:true},
+    {name:'Community Guardian',status:'Monitoring 3 channels',icon:'◌',color:'amber',active:true},
+    {name:'Partnership Scout',status:'Scored 8 new leads',icon:'◇',color:'blue',active:true},
+    {name:'Market Listener',status:'Watching 14 narratives',icon:'↗',color:'mint',active:true}
+  ],
+  activities:[
+    {icon:'✦',text:'Content Strategist created 3 draft posts',time:'12m'},
+    {icon:'◇',text:'Partnership Scout qualified LayerZero Labs',time:'38m'},
+    {icon:'◌',text:'Community Guardian resolved 14 questions',time:'1h'}
+  ], completed:18
+};
+
+let state = JSON.parse(localStorage.getItem('wave-state') || 'null') || structuredClone(defaults);
+let currentFilter = 'All';
+const $ = (selector) => document.querySelector(selector);
+const $$ = (selector) => [...document.querySelectorAll(selector)];
+const persist = () => localStorage.setItem('wave-state', JSON.stringify(state));
+
+function renderTasks(){
+  const tasks = currentFilter === 'All' ? state.tasks : state.tasks.filter(t=>t.type===currentFilter);
+  $('#taskList').innerHTML = tasks.length ? tasks.map(t=>`<div class="task-item" data-id="${t.id}"><button class="task-check" aria-label="Complete ${t.title}">✓</button><span class="task-icon">${t.icon}</span><span class="task-copy"><b>${escapeHtml(t.title)}</b><small>${escapeHtml(t.meta)}</small></span><span class="task-tag ${t.type==='Urgent'?'urgent':''}">${t.type}</span><span class="task-avatar">${t.owner}</span></div>`).join('') : '<div class="task-item"><span class="task-copy"><b>You’re all clear</b><small>No items match this filter.</small></span></div>';
+  $('#attentionCount').textContent = state.tasks.length;
+  $('#taskBadge').textContent = state.tasks.length;
+  $('#metricTasks').textContent = state.completed;
+  $$('.task-check').forEach(btn=>btn.addEventListener('click',()=>completeTask(Number(btn.closest('.task-item').dataset.id))));
+}
+function renderAgents(){
+  $('#agentList').innerHTML = state.agents.map((a,i)=>`<div class="agent-row"><span class="agent-orb ${a.color}">${a.icon}</span><span class="agent-copy"><b>${a.name}</b><small>${a.status}</small></span><button class="agent-state ${a.active?'':'paused'}" data-agent="${i}"><i></i>${a.active?'Active':'Paused'}</button></div>`).join('');
+  $$('.agent-state').forEach(b=>b.addEventListener('click',()=>toggleAgent(Number(b.dataset.agent))));
+}
+function renderActivity(){
+  $('#activityList').innerHTML = state.activities.slice(0,3).map(a=>`<div class="activity"><span>${a.icon}</span><p>${escapeHtml(a.text)}<small>Automated workflow</small></p><time>${a.time}</time></div>`).join('');
+}
+function completeTask(id){const task=state.tasks.find(t=>t.id===id);state.tasks=state.tasks.filter(t=>t.id!==id);state.completed++;state.activities.unshift({icon:'✓',text:`Completed: ${task.title}`,time:'now'});persist();renderTasks();renderActivity();toast('Task completed and added to the activity log.');}
+function toggleAgent(index){state.agents[index].active=!state.agents[index].active;state.agents[index].status=state.agents[index].active?'Monitoring resumed':'Waiting for your signal';persist();renderAgents();toast(`${state.agents[index].name} ${state.agents[index].active?'resumed':'paused'}.`);}
+function escapeHtml(value){const div=document.createElement('div');div.textContent=value;return div.innerHTML;}
+function toast(message){$('#toast p').textContent=message;$('#toast').classList.add('show');clearTimeout(window.toastTimer);window.toastTimer=setTimeout(()=>$('#toast').classList.remove('show'),3000);}
+
+$('#taskFilters').addEventListener('click',e=>{if(!e.target.dataset.filter)return;currentFilter=e.target.dataset.filter;$$('#taskFilters button').forEach(b=>b.classList.toggle('active',b===e.target));renderTasks();});
+$$('[data-open-task]').forEach(b=>b.addEventListener('click',()=>{const tomorrow=new Date(Date.now()+86400000).toISOString().slice(0,10);$('#taskDate').value=tomorrow;$('#taskDialog').showModal();setTimeout(()=>$('#taskTitle').focus(),50);}));
+$('#createTaskButton').addEventListener('click',e=>{if(!$('#taskForm').reportValidity()){e.preventDefault();return;}const owner=$('#taskOwner').value;state.tasks.unshift({id:Date.now(),title:$('#taskTitle').value.trim(),meta:`${owner} · Due ${$('#taskDate').value}`,type:$('#taskPriority').value,icon:'✓',owner:owner.split(' ').map(x=>x[0]).join('').slice(0,2)});state.activities.unshift({icon:'＋',text:`Created: ${$('#taskTitle').value.trim()}`,time:'now'});persist();renderTasks();renderActivity();$('#taskForm').reset();toast('Task created and routed successfully.');});
+
+const pages=['Command Center','Tasks','Content Studio','Community','Partnerships','Events','Customers','Finance','Analytics','Settings'];
+$$('.nav-item[data-page]').forEach(btn=>btn.addEventListener('click',()=>navigate(btn.dataset.page)));
+$$('[data-page-link]').forEach(btn=>btn.addEventListener('click',()=>navigate(btn.dataset.pageLink)));
+function navigate(page){
+  if(page==='Command Center'){location.reload();return;}
+  $$('.nav-item').forEach(b=>b.classList.toggle('active',b.dataset.page===page));$('#pageTitle').textContent=page;$('#breadcrumb').textContent=`WORKSPACE / ${page.toUpperCase()}`;
+  const descriptions={Tasks:'Plan, assign, and approve work across people and agents.', 'Content Studio':'Turn strategy into on-brand content with human approval.',Community:'Monitor conversations, questions, sentiment, and emerging risk.',Partnerships:'Discover, qualify, and nurture high-fit ecosystem relationships.',Events:'Match the team with events, deadlines, and speaking opportunities.',Customers:'Understand product satisfaction and act on account health signals.',Finance:'Track partner deliverables, invoices, approvals, and payment status.',Analytics:'Connect activity to reach, relationships, and business outcomes.',Settings:'Manage your workspace, agent boundaries, integrations, and data.'};
+  const icons={Tasks:'✓','Content Studio':'✦',Community:'◌',Partnerships:'◇',Events:'□',Customers:'♙',Finance:'◎',Analytics:'↗',Settings:'⚙'};
+  $('#pageContent').innerHTML=`<section class="placeholder-page"><div><span>${icons[page]}</span><h2>${page}</h2><p>${descriptions[page]} This module is represented in the product roadmap and ready for the next implementation sprint.</p>${page==='Tasks'?'<button class="primary-btn" id="pageNewTask">＋ Create a task</button>':''}${page==='Settings'?'<button class="reset-btn" id="resetDemo">Reset demo data</button>':''}</div></section>`;
+  $('#sidebar').classList.remove('open');
+  $('#pageNewTask')?.addEventListener('click',()=>$('#taskDialog').showModal());$('#resetDemo')?.addEventListener('click',()=>{localStorage.removeItem('wave-state');toast('Demo data reset. Reloading…');setTimeout(()=>location.reload(),700);});
+}
+
+const commandDialog=$('#commandDialog');
+function openCommands(){commandDialog.showModal();$('#commandInput').value='';renderCommands('');setTimeout(()=>$('#commandInput').focus(),20);}
+function renderCommands(query){const matches=pages.filter(p=>p.toLowerCase().includes(query.toLowerCase()));$('#commandResults').innerHTML=`<div class="command-group"><div class="command-label">Navigate</div>${matches.map(p=>`<button class="command-item" data-command="${p}"><span>→</span><div><b>${p}</b><small>Open workspace module</small></div></button>`).join('')||'<div class="command-label">No matching commands</div>'}</div>`;$$('[data-command]').forEach(b=>b.addEventListener('click',()=>{commandDialog.close();navigate(b.dataset.command);}));}
+$('#searchTrigger').addEventListener('click',openCommands);$('#commandInput').addEventListener('input',e=>renderCommands(e.target.value));document.addEventListener('keydown',e=>{if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='k'){e.preventDefault();openCommands();}});
+$('#notificationButton').addEventListener('click',()=>$('#notificationPanel').classList.toggle('show'));$('#closeNotifications').addEventListener('click',()=>$('#notificationPanel').classList.remove('show'));$('#mobileMenu').addEventListener('click',()=>$('#sidebar').classList.toggle('open'));
+$('#draftPost').addEventListener('click',()=>{navigate('Content Studio');toast('Content Studio opened with your brand profile.');});$('#scanCommunity').addEventListener('click',()=>{toast('Community scan started across 3 connected channels.');setTimeout(()=>toast('Scan complete: 2 signals need review.'),1600);});$('#findLeads').addEventListener('click',()=>{navigate('Partnerships');toast('Partnership Scout is checking ecosystem fit.');});$('#manageAgents').addEventListener('click',()=>toast('Agent controls are available directly in the roster.'));
+
+renderTasks();renderAgents();renderActivity();
+main
+main
+main
