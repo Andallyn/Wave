@@ -3,10 +3,17 @@ import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 
 const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
+codex/create-proposal-for-client-management-tools-atb8dn
+const app = await readFile(new URL('../wave-app-v4.js', import.meta.url), 'utf8');
+
+test('loads the cache-busted application bundle', () => {
+  assert.match(html, /<script src="wave-app-v4\.js"/);
+  assert.match(html, /onerror="window\.WAVE_BOOT_ERROR=/);
 const app = await readFile(new URL('../app.js', import.meta.url), 'utf8');
 
 test('loads the cache-busted application bundle', () => {
   assert.match(html, /<script src="app\.js\?v=3"><\/script>/);
+main
 });
 
 test('provides a visible boot failure recovery path', () => {
@@ -14,6 +21,9 @@ test('provides a visible boot failure recovery path', () => {
   assert.match(html, /id="bootRetry"/);
   assert.match(html, /window\.WAVE_READY/);
   assert.match(app, /window\.WAVE_READY = true/);
+codex/create-proposal-for-client-management-tools-atb8dn
+  assert.match(html, /event\.lineno/);
+main
 });
 
 test('binds every main navigation destination', () => {
