@@ -3,6 +3,9 @@
   "private": true,
   "scripts": {
     "test": "node --test tests/*.test.mjs",
+codex/create-proposal-for-client-management-tools-atb8dn
     "check": "node --check wave-app-v4.js && npm test"
+    "check": "node --check app.js && npm test"
+main
   }
 }

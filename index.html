@@ -8,7 +8,16 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700&display=swap" rel="stylesheet">
+codex/create-proposal-for-client-management-tools-atb8dn
   <link rel="stylesheet" href="styles.css?v=2">
+codex/create-proposal-for-client-management-tools-9rnlng
+  <link rel="stylesheet" href="styles.css?v=2">
+codex/create-proposal-for-client-management-tools-vzdnel
+  <link rel="stylesheet" href="styles.css?v=2">
+  <link rel="stylesheet" href="styles.css">
+main
+main
+main
 </head>
 <body>
   <div class="app-shell">
@@ -93,6 +102,9 @@
   <dialog id="commandDialog"><div class="command-box"><div class="command-search"><span>⌕</span><input id="commandInput" placeholder="Search pages, tasks, and actions…"><kbd>ESC</kbd></div><div id="commandResults"></div><footer><span>↑↓ Navigate</span><span>↵ Open</span></footer></div></dialog>
   <div class="notification-panel" id="notificationPanel"><div><h3>Notifications</h3><button id="closeNotifications">×</button></div><article><i class="urgent"></i><span><b>Sentiment shift detected</b><small>Community Guardian · 8 min ago</small></span></article><article><i></i><span><b>Campaign draft is ready</b><small>Content Strategist · 24 min ago</small></span></article><article><i></i><span><b>New partner matched</b><small>Partnership Scout · 1 hr ago</small></span></article></div>
   <div class="toast" id="toast"><span>✓</span><p></p></div>
+codex/create-proposal-for-client-management-tools-atb8dn
+ codex/create-proposal-for-client-management-tools-9rnlng
+main
   <div class="boot-error" id="bootError" role="alert" hidden>
     <strong>Wave controls could not start.</strong>
     <span id="bootErrorMessage">The application script did not load.</span>
@@ -103,10 +115,13 @@
     window.WAVE_READY = false;
     window.WAVE_BOOT_ERROR = '';
     window.addEventListener('error', function (event) {
+codex/create-proposal-for-client-management-tools-atb8dn
       var source = event.filename ? event.filename.split('/').pop() : '';
       if (source && source.indexOf('wave-app') !== 0) return;
       var location = source && event.lineno ? ' (' + source + ':' + event.lineno + ':' + (event.colno || 0) + ')' : '';
       window.WAVE_BOOT_ERROR = (event.message || 'The application script could not be loaded.') + location;
+      window.WAVE_BOOT_ERROR = event.message || 'The application script could not be loaded.';
+main
     });
     window.setTimeout(function () {
       if (window.WAVE_READY) return;
@@ -122,7 +137,16 @@
       window.location.reload();
     });
   </script>
+codex/create-proposal-for-client-management-tools-atb8dn
   <!-- A versioned filename avoids stale edge/browser responses more reliably than a query string. -->
   <script src="wave-app-v4.js" onerror="window.WAVE_BOOT_ERROR='Wave could not download wave-app-v4.js. Check the deployment files and network connection.'"></script>
+  <script src="app.js?v=3"></script>
+codex/create-proposal-for-client-management-tools-vzdnel
+  <noscript><div class="noscript-warning">Wave needs JavaScript enabled for its dashboard controls to work.</div></noscript>
+  <script src="app.js?v=2"></script>
+  <script src="app.js"></script>
+main
+main
+main
 </body>
 </html>
