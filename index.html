@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#08130f">
+  <title>Wave — Marketing Operations</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css?v=2">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar">
+      <div class="brand"><span class="brand-mark">W</span><span>Wave</span><span class="brand-beta">BETA</span></div>
+      <button class="workspace-switcher" id="workspaceButton"><span class="workspace-icon">N</span><span><strong>Nova Protocol</strong><small>Growth workspace</small></span><span class="chevron">⌄</span></button>
+      <nav class="nav" aria-label="Main navigation">
+        <p class="nav-label">Workspace</p>
+        <button class="nav-item active" data-page="Command Center"><span>⌂</span>Command Center</button>
+        <button class="nav-item" data-page="Tasks"><span>✓</span>Tasks <em id="taskBadge">6</em></button>
+        <button class="nav-item" data-page="Content Studio"><span>✦</span>Content Studio</button>
+        <button class="nav-item" data-page="Community"><span>◌</span>Community <i class="status-dot"></i></button>
+        <button class="nav-item" data-page="Partnerships"><span>◇</span>Partnerships</button>
+        <button class="nav-item" data-page="Events"><span>□</span>Events</button>
+        <p class="nav-label">Business</p>
+        <button class="nav-item" data-page="Customers"><span>♙</span>Customers</button>
+        <button class="nav-item" data-page="Finance"><span>◎</span>Finance</button>
+        <button class="nav-item" data-page="Analytics"><span>↗</span>Analytics</button>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="usage"><span><b>Agent capacity</b><small>68% used this month</small></span><strong>68%</strong><div><i></i></div></div>
+        <button class="nav-item" data-page="Settings"><span>⚙</span>Settings</button>
+        <button class="profile"><span class="avatar">AM</span><span><b>Alex Morgan</b><small>Workspace admin</small></span><span>•••</span></button>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <button class="mobile-menu" id="mobileMenu" aria-label="Open menu">☰</button>
+        <div><p class="eyebrow" id="breadcrumb">WORKSPACE / OVERVIEW</p><h1 id="pageTitle">Command Center</h1></div>
+        <div class="top-actions">
+          <button class="search-trigger" id="searchTrigger"><span>⌕</span><span>Search anything</span><kbd>⌘ K</kbd></button>
+          <button class="icon-btn" id="notificationButton" aria-label="Notifications">♢<i></i></button>
+          <button class="primary-btn" data-open-task><span>＋</span> New task</button>
+        </div>
+      </header>
+
+      <div class="page" id="pageContent">
+        <section class="welcome-row">
+          <div><h2>Good morning, Alex <span>👋</span></h2><p>Here’s what your team and agents are moving forward today.</p></div>
+          <div class="live-status"><i></i><span><b>All systems operational</b><small>4 agents actively monitoring</small></span></div>
+        </section>
+
+        <section class="metric-grid" aria-label="Workspace metrics">
+          <article class="metric"><div><span class="metric-icon mint">✓</span><span class="trend up">↗ 12%</span></div><strong id="metricTasks">18</strong><h3>Tasks completed</h3><p>this week</p><svg viewBox="0 0 200 30" preserveAspectRatio="none"><path d="M0 25 C35 24,45 14,70 18 S110 22,125 11 S165 15,200 3"/></svg></article>
+          <article class="metric"><div><span class="metric-icon purple">✦</span><span class="trend up">↗ 8.4%</span></div><strong>142.8K</strong><h3>Social reach</h3><p>across 4 channels</p><svg class="purple-line" viewBox="0 0 200 30" preserveAspectRatio="none"><path d="M0 26 C28 27,35 9,58 16 S91 24,108 12 S150 20,200 4"/></svg></article>
+          <article class="metric"><div><span class="metric-icon amber">◌</span><span class="trend neutral">— 0.2%</span></div><strong>87%</strong><h3>Community health</h3><p>positive sentiment</p><div class="mini-bars"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></article>
+          <article class="metric"><div><span class="metric-icon blue">◇</span><span class="trend up">↗ 3 new</span></div><strong>12</strong><h3>Active opportunities</h3><p>$48K pipeline value</p><div class="pipeline"><i></i><i></i><i></i><i></i><i></i></div></article>
+        </section>
+
+        <section class="dashboard-grid">
+          <article class="panel attention-panel">
+            <div class="panel-head"><div><h2>Needs your attention <span class="count" id="attentionCount">6</span></h2><p>Items waiting for a decision or review.</p></div><button class="text-btn" data-page-link="Tasks">View all <span>→</span></button></div>
+            <div class="filter-row" id="taskFilters"><button class="active" data-filter="All">All</button><button data-filter="Review">For review</button><button data-filter="Urgent">Urgent</button></div>
+            <div class="task-list" id="taskList"></div>
+          </article>
+
+          <aside class="right-column">
+            <article class="panel agents-panel">
+              <div class="panel-head"><div><h2>Your agent team</h2><p>Working around the clock.</p></div><button class="more-btn">•••</button></div>
+              <div id="agentList"></div>
+              <button class="full-link" id="manageAgents">Manage all agents <span>→</span></button>
+            </article>
+            <article class="panel goals-panel">
+              <div class="panel-head"><div><h2>Monthly goals</h2><p>July progress</p></div><strong>19 days left</strong></div>
+              <div class="goal"><span><b>Content published</b><em>14 / 20</em></span><div><i style="width:70%"></i></div></div>
+              <div class="goal"><span><b>Qualified leads</b><em>7 / 12</em></span><div><i style="width:58%"></i></div></div>
+              <div class="goal"><span><b>Community growth</b><em>+842 / 1K</em></span><div><i style="width:84%"></i></div></div>
+            </article>
+          </aside>
+        </section>
+
+        <section class="bottom-grid">
+          <article class="panel quick-panel"><div class="panel-head"><div><h2>Quick actions</h2><p>Kick off your most common workflows.</p></div></div><div class="quick-grid"><button data-open-task><span class="mint">＋</span><b>Create a task</b><small>Assign work to your team</small></button><button id="draftPost"><span class="purple">✦</span><b>Draft a post</b><small>Create with your brand voice</small></button><button id="scanCommunity"><span class="amber">◌</span><b>Scan community</b><small>Find trends and risks</small></button><button id="findLeads"><span class="blue">◇</span><b>Find new leads</b><small>Explore aligned partners</small></button></div></article>
+          <article class="panel activity-panel"><div class="panel-head"><div><h2>Live activity</h2><p>Latest actions across your workspace.</p></div><button class="text-btn">View log</button></div><div id="activityList"></div></article>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <dialog id="taskDialog"><form method="dialog" id="taskForm"><div class="dialog-head"><div><span class="dialog-icon">✓</span><div><h2>Create a new task</h2><p>Route work to a teammate or specialist agent.</p></div></div><button value="cancel" aria-label="Close">×</button></div><label>Task title<input id="taskTitle" required maxlength="80" placeholder="e.g. Review ecosystem campaign brief"></label><div class="form-row"><label>Owner<select id="taskOwner"><option>Alex Morgan</option><option>Maya Chen</option><option>Content Strategist</option><option>Community Guardian</option></select></label><label>Priority<select id="taskPriority"><option>Review</option><option>Urgent</option><option>Standard</option></select></label></div><label>Due date<input id="taskDate" type="date" required></label><div class="dialog-actions"><button value="cancel" class="secondary-btn">Cancel</button><button value="default" class="primary-btn" id="createTaskButton">Create task</button></div></form></dialog>
+  <dialog id="commandDialog"><div class="command-box"><div class="command-search"><span>⌕</span><input id="commandInput" placeholder="Search pages, tasks, and actions…"><kbd>ESC</kbd></div><div id="commandResults"></div><footer><span>↑↓ Navigate</span><span>↵ Open</span></footer></div></dialog>
+  <div class="notification-panel" id="notificationPanel"><div><h3>Notifications</h3><button id="closeNotifications">×</button></div><article><i class="urgent"></i><span><b>Sentiment shift detected</b><small>Community Guardian · 8 min ago</small></span></article><article><i></i><span><b>Campaign draft is ready</b><small>Content Strategist · 24 min ago</small></span></article><article><i></i><span><b>New partner matched</b><small>Partnership Scout · 1 hr ago</small></span></article></div>
+  <div class="toast" id="toast"><span>✓</span><p></p></div>
+  <div class="boot-error" id="bootError" role="alert" hidden>
+    <strong>Wave controls could not start.</strong>
+    <span id="bootErrorMessage">The application script did not load.</span>
+    <button id="bootRetry" type="button">Clear saved demo data and reload</button>
+  </div>
+  <noscript><div class="noscript-warning">Wave needs JavaScript enabled for its dashboard controls to work.</div></noscript>
+  <script>
+    window.WAVE_READY = false;
+    window.WAVE_BOOT_ERROR = '';
+    window.addEventListener('error', function (event) {
+      window.WAVE_BOOT_ERROR = event.message || 'The application script could not be loaded.';
+    });
+    window.setTimeout(function () {
+      if (window.WAVE_READY) return;
+      var banner = document.getElementById('bootError');
+      var message = document.getElementById('bootErrorMessage');
+      if (message && window.WAVE_BOOT_ERROR) message.textContent = window.WAVE_BOOT_ERROR;
+      if (banner) banner.hidden = false;
+    }, 1500);
+    document.getElementById('bootRetry').addEventListener('click', function () {
+      try {
+        Object.keys(window.localStorage).filter(function (key) { return key.indexOf('wave-state') === 0; }).forEach(function (key) { window.localStorage.removeItem(key); });
+      } catch (error) {}
+      window.location.reload();
+    });
+  </script>
+  <script src="app.js?v=3"></script>
+</body>
+</html>
