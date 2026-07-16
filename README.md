@@ -15,6 +15,7 @@ Wave should be positioned as **agency intelligence in a product**, not “fully 
 - **Executive overview:** live operating metrics, attention queue, goal progress, and an activity feed.
 - **Agent roster:** specialist agents for content, community, partnerships, and market intelligence with visible states and controls.
 - **Work management:** create, assign, filter, search, complete, and persist tasks.
+-  codex/create-proposal-for-client-management-tools-rdmhq8
 - **Content operations:** generate, review, approve, and schedule on-brand drafts from an editorial pipeline.
 - **Community Desk:** review evidence-linked signals, recurring questions, sentiment changes, and resolve incidents.
 - **Partnership pipeline:** move scored ecosystem leads from discovery through meetings using a visual board.
@@ -22,6 +23,8 @@ Wave should be positioned as **agency intelligence in a product**, not “fully 
 - **Customer Health:** inspect explainable health changes and turn suggested interventions into assigned work.
 - **Finance Operations:** review deliverable-linked invoices through a dual-approval workflow without custodying funds.
 - **Outcome Analytics:** understand approved outcomes, time saved, cost efficiency, and specialist contributions.
+- **Content operations:** review and approve draft content from a central queue.
+  main
 - **Quick actions:** create a task, draft a post, scan community signals, or open the command palette.
 - **Local workspace state:** changes persist in `localStorage`, making the demo usable across refreshes.
 - **Responsive interface:** designed for desktop operations and compact mobile monitoring.
@@ -46,12 +49,17 @@ Then open [http://localhost:4173](http://localhost:4173).
 2. Press **⌘/Ctrl + K** to search commands and workspaces.
 3. Select **New task** to add work; tasks are saved locally.
 4. Filter the Today queue by status and mark items complete.
+codex/create-proposal-for-client-management-tools-rdmhq8
 5. Open the Content Studio to generate and approve a draft for scheduling.
 6. Resolve a detected community signal or advance a qualified partnership lead.
 7. Save an event, create an intervention from a customer-health change, or approve an invoice for second review.
 8. Export an outcome report from Analytics.
 9. Pause or resume an agent from the Agent roster or Settings.
 10. Use **Reset demo data** in Settings to restore the original workspace.
+5. Open the Content Studio or use **Draft post**, then approve a draft.
+6. Pause or resume an agent from the Agent roster.
+7. Use **Reset demo data** in Settings to restore the original workspace.
+main
 
 ## Suggested production architecture
 
