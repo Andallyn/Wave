@@ -1,6 +1,8 @@
 const defaults = {
   tasks: [
+codex/create-proposal-for-client-management-tools-vzdnel
 codex/create-proposal-for-client-management-tools-rdmhq8
+main
     { id: 1, title: 'Review “Road to Mainnet” campaign brief', meta: 'Content Strategist · Due today', type: 'Review', icon: '✦', owner: 'MC' },
     { id: 2, title: 'Approve response to sentiment shift', meta: 'Community Guardian · Detected 8 min ago', type: 'Urgent', icon: '◌', owner: 'AM' },
     { id: 3, title: 'Confirm ETHGlobal side event partnership', meta: 'Partnership Scout · Due in 2 hours', type: 'Review', icon: '◇', owner: 'AM' },
@@ -53,17 +55,45 @@ codex/create-proposal-for-client-management-tools-rdmhq8
   completed: 18
 };
 
+codex/create-proposal-for-client-management-tools-vzdnel
+const clone = (value) => typeof structuredClone === 'function'
+  ? structuredClone(value)
+  : JSON.parse(JSON.stringify(value));
+
+function readStoredState() {
+  try {
+    return JSON.parse(window.localStorage.getItem('wave-state') || 'null');
+  } catch (error) {
+    console.warn('Wave could not read saved workspace data. Starting with demo data.', error);
+    return null;
+  }
+}
+
+const stored = readStoredState();
+let state = { ...clone(defaults), ...(stored || {}) };
+Object.keys(defaults).forEach((key) => {
+  if (state[key] === undefined) state[key] = clone(defaults[key]);
 const stored = JSON.parse(localStorage.getItem('wave-state') || 'null');
 let state = { ...structuredClone(defaults), ...(stored || {}) };
 Object.keys(defaults).forEach((key) => {
   if (state[key] === undefined) state[key] = structuredClone(defaults[key]);
+main
 });
 let currentFilter = 'All';
 let currentPage = 'Command Center';
 const homeMarkup = document.querySelector('#pageContent').innerHTML;
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => [...document.querySelectorAll(selector)];
+codex/create-proposal-for-client-management-tools-vzdnel
+const persist = () => {
+  try {
+    window.localStorage.setItem('wave-state', JSON.stringify(state));
+  } catch (error) {
+    console.warn('Wave could not save workspace data in this browser.', error);
+  }
+};
 const persist = () => localStorage.setItem('wave-state', JSON.stringify(state));
+main
 const money = (value) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(value);
 
 function escapeHtml(value) {
@@ -79,6 +109,14 @@ function toast(message) {
   window.toastTimer = setTimeout(() => $('#toast').classList.remove('show'), 3000);
 }
 
+codex/create-proposal-for-client-management-tools-vzdnel
+function acknowledge(button, message) {
+  button.classList.remove('button-pulse');
+  void button.offsetWidth;
+  button.classList.add('button-pulse');
+  toast(message);
+}
+main
 function recordActivity(icon, text) {
   state.activities.unshift({ icon, text, time: 'now' });
   persist();
@@ -240,7 +278,11 @@ function attachModuleEvents(page) {
   $$('[data-approve-invoice]').forEach((button) => button.addEventListener('click', () => { const invoice = state.invoices.find((item) => item.id === Number(button.dataset.approveInvoice)); invoice.status = 'Awaiting second approval'; recordActivity('$', `Invoice approved: ${invoice.vendor} ${money(invoice.amount)}`); navigate('Finance'); toast('First approval recorded. A second reviewer was notified.'); }));
   $('#uploadInvoice')?.addEventListener('click', () => toast('Invoice intake will extract fields and match the related contract.'));
   $('#exportReport')?.addEventListener('click', () => { const report = `Wave outcome report\nApproved outcomes: ${state.completed}\nEstimated time saved: 41h\nApproval rate: 92%`; const link = document.createElement('a'); link.href = URL.createObjectURL(new Blob([report], { type: 'text/plain' })); link.download = 'wave-outcome-report.txt'; link.click(); URL.revokeObjectURL(link.href); toast('Outcome report exported.'); });
+  codex/create-proposal-for-client-management-tools-vzdnel
+  $('#resetDemo')?.addEventListener('click', () => { try { window.localStorage.removeItem('wave-state'); } catch (error) { console.warn(error); } toast('Demo data reset. Reloading…'); setTimeout(() => location.reload(), 700); });
+  
   $('#resetDemo')?.addEventListener('click', () => { localStorage.removeItem('wave-state'); toast('Demo data reset. Reloading…'); setTimeout(() => location.reload(), 700); });
+ main
   if (page === 'Settings') renderAgents();
 }
 
@@ -300,6 +342,36 @@ $('#notificationButton').addEventListener('click', () => $('#notificationPanel')
 $('#closeNotifications').addEventListener('click', () => $('#notificationPanel').classList.remove('show'));
 $('#mobileMenu').addEventListener('click', () => $('#sidebar').classList.toggle('open'));
 
+codex/create-proposal-for-client-management-tools-vzdnel
+// Every visible control should acknowledge a click. Feature-specific handlers above
+// stop here via data attributes/IDs; these handlers cover secondary prototype controls.
+$('#workspaceButton').addEventListener('click', (event) => acknowledge(event.currentTarget, 'Nova Protocol is the active demo workspace.'));
+document.addEventListener('click', (event) => {
+  const button = event.target.closest('button');
+  if (!button) return;
+  const messages = {
+    'more-btn': 'Agent activity options opened for this demo workspace.',
+    'row-menu': 'Item actions are ready for the next workflow step.',
+    'text-btn': 'The latest workspace activity is already shown below.',
+    'secondary-btn full': 'Brand profile editor is queued for the connected account sprint.'
+  };
+  const key = Object.keys(messages).find((className) => className.split(' ').every((name) => button.classList.contains(name)));
+  if (key && !button.dataset.feedbackShown) {
+    button.dataset.feedbackShown = 'true';
+    acknowledge(button, messages[key]);
+    setTimeout(() => delete button.dataset.feedbackShown, 300);
+  }
+  if (button.closest('.settings-nav')) {
+    $$('.settings-nav button').forEach((item) => item.classList.toggle('active', item === button));
+    acknowledge(button, `${button.textContent.trim()} selected. This panel will connect to your production workspace.`);
+  }
+  if (button.closest('.segmented') && !button.dataset.filter) {
+    button.parentElement.querySelectorAll('button').forEach((item) => item.classList.toggle('active', item === button));
+    acknowledge(button, `${button.textContent.trim()} view selected.`);
+  }
+});
+
+attachHomeEvents();
 attachHomeEvents();
     {id:1,title:'Review “Road to Mainnet” campaign brief',meta:'Content Strategist · Due today',type:'Review',icon:'✦',owner:'MC'},
     {id:2,title:'Approve response to sentiment shift',meta:'Community Guardian · Detected 8 min ago',type:'Urgent',icon:'◌',owner:'AM'},
@@ -372,4 +444,5 @@ $('#notificationButton').addEventListener('click',()=>$('#notificationPanel').cl
 $('#draftPost').addEventListener('click',()=>{navigate('Content Studio');toast('Content Studio opened with your brand profile.');});$('#scanCommunity').addEventListener('click',()=>{toast('Community scan started across 3 connected channels.');setTimeout(()=>toast('Scan complete: 2 signals need review.'),1600);});$('#findLeads').addEventListener('click',()=>{navigate('Partnerships');toast('Partnership Scout is checking ecosystem fit.');});$('#manageAgents').addEventListener('click',()=>toast('Agent controls are available directly in the roster.'));
 
 renderTasks();renderAgents();renderActivity();
+main
 main
