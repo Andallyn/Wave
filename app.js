@@ -1,7 +1,9 @@
 const defaults = {
   tasks: [
+codex/create-proposal-for-client-management-tools-9rnlng
 codex/create-proposal-for-client-management-tools-vzdnel
 codex/create-proposal-for-client-management-tools-rdmhq8
+main
 main
     { id: 1, title: 'Review “Road to Mainnet” campaign brief', meta: 'Content Strategist · Due today', type: 'Review', icon: '✦', owner: 'MC' },
     { id: 2, title: 'Approve response to sentiment shift', meta: 'Community Guardian · Detected 8 min ago', type: 'Urgent', icon: '◌', owner: 'AM' },
@@ -55,14 +57,23 @@ main
   completed: 18
 };
 
+codex/create-proposal-for-client-management-tools-9rnlng
+const STATE_KEY = 'wave-state-v3';
 codex/create-proposal-for-client-management-tools-vzdnel
+main
 const clone = (value) => typeof structuredClone === 'function'
   ? structuredClone(value)
   : JSON.parse(JSON.stringify(value));
 
 function readStoredState() {
   try {
+codex/create-proposal-for-client-management-tools-9rnlng
+    const saved = JSON.parse(window.localStorage.getItem(STATE_KEY) || 'null');
+    if (!saved || typeof saved !== 'object') return null;
+    const arrays = ['tasks', 'agents', 'activities', 'content', 'signals', 'leads', 'events', 'customers', 'invoices'];
+    return arrays.every((key) => saved[key] === undefined || Array.isArray(saved[key])) ? saved : null;
     return JSON.parse(window.localStorage.getItem('wave-state') || 'null');
+ main
   } catch (error) {
     console.warn('Wave could not read saved workspace data. Starting with demo data.', error);
     return null;
@@ -73,10 +84,12 @@ const stored = readStoredState();
 let state = { ...clone(defaults), ...(stored || {}) };
 Object.keys(defaults).forEach((key) => {
   if (state[key] === undefined) state[key] = clone(defaults[key]);
+codex/create-proposal-for-client-management-tools-9rnlng
 const stored = JSON.parse(localStorage.getItem('wave-state') || 'null');
 let state = { ...structuredClone(defaults), ...(stored || {}) };
 Object.keys(defaults).forEach((key) => {
   if (state[key] === undefined) state[key] = structuredClone(defaults[key]);
+main
 main
 });
 let currentFilter = 'All';
@@ -84,15 +97,22 @@ let currentPage = 'Command Center';
 const homeMarkup = document.querySelector('#pageContent').innerHTML;
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => [...document.querySelectorAll(selector)];
+codex/create-proposal-for-client-management-tools-9rnlng
+const persist = () => {
+  try {
+    window.localStorage.setItem(STATE_KEY, JSON.stringify(state));
 codex/create-proposal-for-client-management-tools-vzdnel
 const persist = () => {
   try {
     window.localStorage.setItem('wave-state', JSON.stringify(state));
+main
   } catch (error) {
     console.warn('Wave could not save workspace data in this browser.', error);
   }
 };
+codex/create-proposal-for-client-management-tools-9rnlng
 const persist = () => localStorage.setItem('wave-state', JSON.stringify(state));
+main
 main
 const money = (value) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(value);
 
@@ -109,13 +129,17 @@ function toast(message) {
   window.toastTimer = setTimeout(() => $('#toast').classList.remove('show'), 3000);
 }
 
+codex/create-proposal-for-client-management-tools-9rnlng
 codex/create-proposal-for-client-management-tools-vzdnel
+main
 function acknowledge(button, message) {
   button.classList.remove('button-pulse');
   void button.offsetWidth;
   button.classList.add('button-pulse');
   toast(message);
 }
+codex/create-proposal-for-client-management-tools-9rnlng
+main
 main
 function recordActivity(icon, text) {
   state.activities.unshift({ icon, text, time: 'now' });
@@ -278,10 +302,14 @@ function attachModuleEvents(page) {
   $$('[data-approve-invoice]').forEach((button) => button.addEventListener('click', () => { const invoice = state.invoices.find((item) => item.id === Number(button.dataset.approveInvoice)); invoice.status = 'Awaiting second approval'; recordActivity('$', `Invoice approved: ${invoice.vendor} ${money(invoice.amount)}`); navigate('Finance'); toast('First approval recorded. A second reviewer was notified.'); }));
   $('#uploadInvoice')?.addEventListener('click', () => toast('Invoice intake will extract fields and match the related contract.'));
   $('#exportReport')?.addEventListener('click', () => { const report = `Wave outcome report\nApproved outcomes: ${state.completed}\nEstimated time saved: 41h\nApproval rate: 92%`; const link = document.createElement('a'); link.href = URL.createObjectURL(new Blob([report], { type: 'text/plain' })); link.download = 'wave-outcome-report.txt'; link.click(); URL.revokeObjectURL(link.href); toast('Outcome report exported.'); });
+codex/create-proposal-for-client-management-tools-9rnlng
+  $('#resetDemo')?.addEventListener('click', () => { try { window.localStorage.removeItem(STATE_KEY); } catch (error) { console.warn(error); } toast('Demo data reset. Reloading…'); setTimeout(() => location.reload(), 700); });
+  
   codex/create-proposal-for-client-management-tools-vzdnel
   $('#resetDemo')?.addEventListener('click', () => { try { window.localStorage.removeItem('wave-state'); } catch (error) { console.warn(error); } toast('Demo data reset. Reloading…'); setTimeout(() => location.reload(), 700); });
   
   $('#resetDemo')?.addEventListener('click', () => { localStorage.removeItem('wave-state'); toast('Demo data reset. Reloading…'); setTimeout(() => location.reload(), 700); });
+ main
  main
   if (page === 'Settings') renderAgents();
 }
@@ -300,7 +328,11 @@ function navigate(page) {
 
 function openTaskDialog() {
   $('#taskDate').value = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
+codex/create-proposal-for-client-management-tools-9rnlng
+  if (typeof $('#taskDialog').showModal === 'function') $('#taskDialog').showModal();
+  else $('#taskDialog').setAttribute('open', '');
   $('#taskDialog').showModal();
+main
   setTimeout(() => $('#taskTitle').focus(), 50);
 }
 
@@ -332,9 +364,15 @@ const pages = ['Command Center', ...Object.keys(views)];
 function renderCommands(query) {
   const matches = pages.filter((page) => page.toLowerCase().includes(query.toLowerCase()));
   $('#commandResults').innerHTML = `<div class="command-group"><div class="command-label">Navigate</div>${matches.map((page) => `<button class="command-item" data-command="${page}"><span>→</span><div><b>${page}</b><small>Open workspace module</small></div></button>`).join('') || '<div class="command-label">No matching commands</div>'}</div>`;
+codex/create-proposal-for-client-management-tools-9rnlng
+  $$('[data-command]').forEach((button) => button.addEventListener('click', () => { if (typeof commandDialog.close === 'function') commandDialog.close(); else commandDialog.removeAttribute('open'); navigate(button.dataset.command); }));
+}
+function openCommands() { if (typeof commandDialog.showModal === 'function') commandDialog.showModal(); else commandDialog.setAttribute('open', ''); $('#commandInput').value = ''; renderCommands(''); setTimeout(() => $('#commandInput').focus(), 20); }
+    
   $$('[data-command]').forEach((button) => button.addEventListener('click', () => { commandDialog.close(); navigate(button.dataset.command); }));
 }
 function openCommands() { commandDialog.showModal(); $('#commandInput').value = ''; renderCommands(''); setTimeout(() => $('#commandInput').focus(), 20); }
+main
 $('#searchTrigger').addEventListener('click', openCommands);
 $('#commandInput').addEventListener('input', (event) => renderCommands(event.target.value));
 document.addEventListener('keydown', (event) => { if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') { event.preventDefault(); openCommands(); } });
@@ -342,7 +380,9 @@ $('#notificationButton').addEventListener('click', () => $('#notificationPanel')
 $('#closeNotifications').addEventListener('click', () => $('#notificationPanel').classList.remove('show'));
 $('#mobileMenu').addEventListener('click', () => $('#sidebar').classList.toggle('open'));
 
+codex/create-proposal-for-client-management-tools-9rnlng
 codex/create-proposal-for-client-management-tools-vzdnel
+main
 // Every visible control should acknowledge a click. Feature-specific handlers above
 // stop here via data attributes/IDs; these handlers cover secondary prototype controls.
 $('#workspaceButton').addEventListener('click', (event) => acknowledge(event.currentTarget, 'Nova Protocol is the active demo workspace.'));
@@ -372,6 +412,9 @@ document.addEventListener('click', (event) => {
 });
 
 attachHomeEvents();
+codex/create-proposal-for-client-management-tools-9rnlng
+window.WAVE_READY = true;
+document.documentElement.classList.add('wave-ready');
 attachHomeEvents();
     {id:1,title:'Review “Road to Mainnet” campaign brief',meta:'Content Strategist · Due today',type:'Review',icon:'✦',owner:'MC'},
     {id:2,title:'Approve response to sentiment shift',meta:'Community Guardian · Detected 8 min ago',type:'Urgent',icon:'◌',owner:'AM'},
@@ -444,5 +487,6 @@ $('#notificationButton').addEventListener('click',()=>$('#notificationPanel').cl
 $('#draftPost').addEventListener('click',()=>{navigate('Content Studio');toast('Content Studio opened with your brand profile.');});$('#scanCommunity').addEventListener('click',()=>{toast('Community scan started across 3 connected channels.');setTimeout(()=>toast('Scan complete: 2 signals need review.'),1600);});$('#findLeads').addEventListener('click',()=>{navigate('Partnerships');toast('Partnership Scout is checking ecosystem fit.');});$('#manageAgents').addEventListener('click',()=>toast('Agent controls are available directly in the roster.'));
 
 renderTasks();renderAgents();renderActivity();
+main
 main
 main

@@ -8,9 +8,12 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700&display=swap" rel="stylesheet">
+codex/create-proposal-for-client-management-tools-9rnlng
+  <link rel="stylesheet" href="styles.css?v=2">
 codex/create-proposal-for-client-management-tools-vzdnel
   <link rel="stylesheet" href="styles.css?v=2">
   <link rel="stylesheet" href="styles.css">
+main
 main
 </head>
 <body>
@@ -96,10 +99,39 @@ main
   <dialog id="commandDialog"><div class="command-box"><div class="command-search"><span>⌕</span><input id="commandInput" placeholder="Search pages, tasks, and actions…"><kbd>ESC</kbd></div><div id="commandResults"></div><footer><span>↑↓ Navigate</span><span>↵ Open</span></footer></div></dialog>
   <div class="notification-panel" id="notificationPanel"><div><h3>Notifications</h3><button id="closeNotifications">×</button></div><article><i class="urgent"></i><span><b>Sentiment shift detected</b><small>Community Guardian · 8 min ago</small></span></article><article><i></i><span><b>Campaign draft is ready</b><small>Content Strategist · 24 min ago</small></span></article><article><i></i><span><b>New partner matched</b><small>Partnership Scout · 1 hr ago</small></span></article></div>
   <div class="toast" id="toast"><span>✓</span><p></p></div>
+ codex/create-proposal-for-client-management-tools-9rnlng
+  <div class="boot-error" id="bootError" role="alert" hidden>
+    <strong>Wave controls could not start.</strong>
+    <span id="bootErrorMessage">The application script did not load.</span>
+    <button id="bootRetry" type="button">Clear saved demo data and reload</button>
+  </div>
+  <noscript><div class="noscript-warning">Wave needs JavaScript enabled for its dashboard controls to work.</div></noscript>
+  <script>
+    window.WAVE_READY = false;
+    window.WAVE_BOOT_ERROR = '';
+    window.addEventListener('error', function (event) {
+      window.WAVE_BOOT_ERROR = event.message || 'The application script could not be loaded.';
+    });
+    window.setTimeout(function () {
+      if (window.WAVE_READY) return;
+      var banner = document.getElementById('bootError');
+      var message = document.getElementById('bootErrorMessage');
+      if (message && window.WAVE_BOOT_ERROR) message.textContent = window.WAVE_BOOT_ERROR;
+      if (banner) banner.hidden = false;
+    }, 1500);
+    document.getElementById('bootRetry').addEventListener('click', function () {
+      try {
+        Object.keys(window.localStorage).filter(function (key) { return key.indexOf('wave-state') === 0; }).forEach(function (key) { window.localStorage.removeItem(key); });
+      } catch (error) {}
+      window.location.reload();
+    });
+  </script>
+  <script src="app.js?v=3"></script>
 codex/create-proposal-for-client-management-tools-vzdnel
   <noscript><div class="noscript-warning">Wave needs JavaScript enabled for its dashboard controls to work.</div></noscript>
   <script src="app.js?v=2"></script>
   <script src="app.js"></script>
+main
 main
 </body>
 </html>
