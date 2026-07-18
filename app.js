@@ -238,8 +238,8 @@ const views = {
 };
 
 function attachModuleEvents(page) {
-  $('[data-content-view]').forEach((button) => button.addEventListener('click', () => { currentContentView = button.dataset.contentView; navigate('Content Studio'); }));
-  $('[data-preview-content]').forEach((button) => button.addEventListener('click', () => {
+  $$('[data-content-view]').forEach((button) => button.addEventListener('click', () => { currentContentView = button.dataset.contentView; navigate('Content Studio'); }));
+  $$('[data-preview-content]').forEach((button) => button.addEventListener('click', () => {
     const item = state.content.find((content) => content.id === Number(button.dataset.previewContent));
     if (!item) return;
     $('#previewTitle').textContent = item.title;
@@ -247,18 +247,18 @@ function attachModuleEvents(page) {
     $('#previewCopy').textContent = item.copy;
     const dialog = $('#contentPreviewDialog'); if (typeof dialog.showModal === 'function') dialog.showModal(); else dialog.setAttribute('open', '');
   }));
-  $('[data-edit-content]').forEach((button) => button.addEventListener('click', () => {
+  $$('[data-edit-content]').forEach((button) => button.addEventListener('click', () => {
     const item = state.content.find((content) => content.id === Number(button.dataset.editContent));
     if (!item) return;
     editingContentId = item.id; $('#contentTitle').value = item.title; $('#contentCopy').value = item.copy; $('#contentChannel').value = item.channel; $('#contentStatus').value = item.status; $('#contentDate').value = item.date === 'Unscheduled' ? '' : item.date;
     const dialog = $('#contentDialog'); if (typeof dialog.showModal === 'function') dialog.showModal(); else dialog.setAttribute('open', '');
   }));
-  $('[data-delete-content]').forEach((button) => button.addEventListener('click', () => {
+  $$('[data-delete-content]').forEach((button) => button.addEventListener('click', () => {
     const item = state.content.find((content) => content.id === Number(button.dataset.deleteContent));
     if (!item || !window.confirm(`Delete “${item.title}”?`)) return;
     state.content = state.content.filter((content) => content.id !== item.id); recordActivity('✦', `Deleted content: ${item.title}`); navigate('Content Studio'); toast('Content removed from the workspace.');
   }));
-  $('[data-open-task]').forEach((button) => button.addEventListener('click', openTaskDialog));
+  $$('[data-open-task]').forEach((button) => button.addEventListener('click', openTaskDialog));
   if (page === 'Tasks') {
     renderTasks('#allTaskList');
     $('#moduleTaskFilters').addEventListener('click', (event) => {
@@ -376,8 +376,8 @@ function closeContentDialog() {
   $('#contentForm').reset();
   const dialog = $('#contentDialog'); if (typeof dialog.close === 'function') dialog.close(); else dialog.removeAttribute('open');
 }
-$('[data-close-content]').forEach((button) => button.addEventListener('click', closeContentDialog));
-$('[data-close-preview]').forEach((button) => button.addEventListener('click', () => { const dialog = $('#contentPreviewDialog'); if (typeof dialog.close === 'function') dialog.close(); else dialog.removeAttribute('open'); }));
+$$('[data-close-content]').forEach((button) => button.addEventListener('click', closeContentDialog));
+$$('[data-close-preview]').forEach((button) => button.addEventListener('click', () => { const dialog = $('#contentPreviewDialog'); if (typeof dialog.close === 'function') dialog.close(); else dialog.removeAttribute('open'); }));
 $('#contentForm').addEventListener('submit', (event) => {
   event.preventDefault();
   if (!event.currentTarget.reportValidity()) return;
