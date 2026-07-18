@@ -67,6 +67,12 @@ test('provides complete Content Studio workflows', () => {
   assert.match(app, /data-page-link="Settings"/);
 });
 
+test('never iterates a single-element selector as a collection', () => {
+  assert.doesNotMatch(app, /(^|\n)\s*\$\([^\)\n]+\)\.forEach/g);
+  assert.match(app, /\$\$\('\[data-close-content\]'\)\.forEach/);
+  assert.match(app, /\$\$\('\[data-content-view\]'\)\.forEach/);
+});
+
 test('contains no merge markers or leaked conflict branch labels', () => {
   const debris = /^(<<<<<<<|=======|>>>>>>>)( |$)|^\s*(codex\/create-proposal-for-client-management-tools-[a-z0-9]+|main)\s*$/m;
   for (const [path, content] of files) assert.doesNotMatch(content, debris, path);
