@@ -58,6 +58,15 @@ test('content and partnership generation mutate persisted workspace state', () =
   assert.match(app, /state\.leads\.unshift/);
 });
 
+test('provides complete Content Studio workflows', () => {
+  assert.match(html, /id="contentDialog"/);
+  assert.match(html, /id="contentPreviewDialog"/);
+  ['data-content-view', 'data-preview-content', 'data-edit-content', 'data-delete-content'].forEach((control) => assert.match(app, new RegExp(control)));
+  assert.match(app, /contentForm'\)\.addEventListener\('submit'/);
+  assert.match(app, /state\.content = state\.content\.filter/);
+  assert.match(app, /data-page-link="Settings"/);
+});
+
 test('contains no merge markers or leaked conflict branch labels', () => {
   const debris = /^(<<<<<<<|=======|>>>>>>>)( |$)|^\s*(codex\/create-proposal-for-client-management-tools-[a-z0-9]+|main)\s*$/m;
   for (const [path, content] of files) assert.doesNotMatch(content, debris, path);
