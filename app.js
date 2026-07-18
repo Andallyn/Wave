@@ -332,7 +332,7 @@ function attachHomeEvents() {
 }
 
 $$('.nav-item[data-page]').forEach((button) => button.addEventListener('click', () => navigate(button.dataset.page)));
-$('[data-close-task]').forEach((button) => button.addEventListener('click', closeTaskDialog));
+$$('[data-close-task]').forEach((button) => button.addEventListener('click', closeTaskDialog));
 $('#taskForm').addEventListener('submit', (event) => {
   event.preventDefault();
   if (!event.currentTarget.reportValidity()) return;
