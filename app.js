@@ -252,8 +252,15 @@ function attachModuleEvents(page) {
     item.status = 'Scheduled'; recordActivity('✦', `Approved content: ${item.title}`); navigate('Content Studio'); toast('Content approved and added to the publishing schedule.');
   }));
   $('#generateContent')?.addEventListener('click', () => {
-    state.content.unshift({ id: Date.now(), title: 'Builder spotlight: shipping on Nova', channel: 'LinkedIn', campaign: 'Ecosystem', status: 'Draft', date: 'Unscheduled', copy: 'Meet the builders turning open infrastructure into useful products for real communities.' });
-    recordActivity('✦', 'Content Strategist generated a new builder spotlight draft'); navigate('Content Studio'); toast('New on-brand draft generated.');
+    const ideas = [
+      { title: 'Builder spotlight: shipping on Nova', channel: 'LinkedIn', campaign: 'Ecosystem', copy: 'Meet the builders turning open infrastructure into useful products for real communities.' },
+      { title: 'Three lessons from the latest testnet milestone', channel: 'X thread', campaign: 'Mainnet launch', copy: 'What the latest testnet taught us about resilience, developer experience, and the path to mainnet.' },
+      { title: 'Community questions, answered', channel: 'LinkedIn', campaign: 'Education', copy: 'A concise guide to the questions builders and community members asked most often this week.' }
+    ];
+    const usedTitles = new Set(state.content.map((item) => item.title));
+    const draft = ideas.find((idea) => !usedTitles.has(idea.title)) || ideas[state.content.length % ideas.length];
+    state.content.unshift({ id: Date.now(), ...draft, status: 'Draft', date: 'Unscheduled' });
+    recordActivity('✦', `Content Strategist generated: ${draft.title}`); navigate('Content Studio'); toast('New on-brand draft generated.');
   });
   $$('[data-resolve-signal]').forEach((button) => button.addEventListener('click', () => {
     const signal = state.signals.find((item) => item.id === Number(button.dataset.resolveSignal)); signal.resolved = true; recordActivity('◌', `Resolved signal: ${signal.title}`); navigate('Community'); toast('Signal resolved and logged.');
@@ -262,7 +269,20 @@ function attachModuleEvents(page) {
   $$('[data-advance-lead]').forEach((button) => button.addEventListener('click', () => {
     const stages = ['Discovered', 'Qualified', 'Contacted', 'Meeting']; const lead = state.leads.find((item) => item.id === Number(button.dataset.advanceLead)); lead.stage = stages[stages.indexOf(lead.stage) + 1]; recordActivity('◇', `${lead.company} moved to ${lead.stage}`); navigate('Partnerships'); toast('Opportunity moved forward.');
   }));
-  $('#discoverLead')?.addEventListener('click', () => { toast('Partnership Scout is scoring ecosystem signals…'); setTimeout(() => toast('Discovery complete: 3 leads added to review.'), 1500); });
+  $('#discoverLead')?.addEventListener('click', () => {
+    const candidates = [
+      { company: 'Relay Works', fit: 91, stage: 'Discovered', value: '$14K', reason: 'Developer tooling audience overlaps with Nova ecosystem teams.' },
+      { company: 'Modular Commons', fit: 86, stage: 'Discovered', value: '$11K', reason: 'Education programs align with the current builder campaign.' },
+      { company: 'Beacon Labs', fit: 83, stage: 'Discovered', value: '$8K', reason: 'Infrastructure roadmap creates a timely integration opportunity.' }
+    ];
+    const existing = new Set(state.leads.map((lead) => lead.company));
+    const additions = candidates.filter((lead) => !existing.has(lead.company)).map((lead, index) => ({ ...lead, id: Date.now() + index }));
+    toast('Partnership Scout is scoring ecosystem signals…');
+    setTimeout(() => {
+      if (!additions.length) { toast('Discovery complete. All current matches are already in the pipeline.'); return; }
+      state.leads.unshift(...additions); recordActivity('◇', `Partnership Scout added ${additions.length} qualified leads`); navigate('Partnerships'); toast(`Discovery complete: ${additions.length} leads added to the pipeline.`);
+    }, 700);
+  });
   $$('[data-save-event]').forEach((button) => button.addEventListener('click', () => { const event = state.events.find((item) => item.id === Number(button.dataset.saveEvent)); event.saved = !event.saved; recordActivity('□', `${event.saved ? 'Saved' : 'Removed'} event: ${event.name}`); navigate('Events'); toast(event.saved ? 'Event saved with deadline reminders.' : 'Event removed from your plan.'); }));
   $('#refreshEvents')?.addEventListener('click', () => toast('Event matches refreshed from your goals and budget.'));
   $$('[data-customer-task]').forEach((button) => button.addEventListener('click', () => { const customer = state.customers.find((item) => item.id === Number(button.dataset.customerTask)); state.tasks.unshift({ id: Date.now(), title: `${customer.action}: ${customer.name}`, meta: 'Customer Advocate · Due in 2 days', type: customer.health === 'At risk' ? 'Urgent' : 'Review', icon: '♙', owner: 'AM' }); recordActivity('♙', `Created customer action for ${customer.name}`); persist(); $('#taskBadge').textContent = state.tasks.length; toast('Customer intervention added to the work queue.'); }));
@@ -293,6 +313,13 @@ function openTaskDialog() {
   setTimeout(() => $('#taskTitle').focus(), 50);
 }
 
+function closeTaskDialog() {
+  const dialog = $('#taskDialog');
+  $('#taskForm').reset();
+  if (typeof dialog.close === 'function') dialog.close();
+  else dialog.removeAttribute('open');
+}
+
 function attachHomeEvents() {
   renderTasks(); renderAgents(); renderActivity();
   $('#taskFilters')?.addEventListener('click', (event) => { if (!event.target.dataset.filter) return; currentFilter = event.target.dataset.filter; $$('#taskFilters button').forEach((button) => button.classList.toggle('active', button === event.target)); renderTasks(); });
@@ -305,13 +332,15 @@ function attachHomeEvents() {
 }
 
 $$('.nav-item[data-page]').forEach((button) => button.addEventListener('click', () => navigate(button.dataset.page)));
-$('#createTaskButton').addEventListener('click', (event) => {
-  if (!$('#taskForm').reportValidity()) { event.preventDefault(); return; }
+$('[data-close-task]').forEach((button) => button.addEventListener('click', closeTaskDialog));
+$('#taskForm').addEventListener('submit', (event) => {
+  event.preventDefault();
+  if (!event.currentTarget.reportValidity()) return;
   const owner = $('#taskOwner').value;
   const title = $('#taskTitle').value.trim();
   state.tasks.unshift({ id: Date.now(), title, meta: `${owner} · Due ${$('#taskDate').value}`, type: $('#taskPriority').value, icon: '✓', owner: owner.split(' ').map((word) => word[0]).join('').slice(0, 2) });
   recordActivity('＋', `Created: ${title}`);
-  $('#taskForm').reset();
+  closeTaskDialog();
   if (currentPage === 'Tasks') navigate('Tasks'); else if (currentPage === 'Command Center') { renderTasks(); renderActivity(); }
   toast('Task created and routed successfully.');
 });

@@ -42,6 +42,20 @@ test('supports browsers without the native dialog API', () => {
   assert.match(app, /setAttribute\('open', ''\)/);
 });
 
+test('submits and cancels tasks without native dialog validation deadlocks', () => {
+  assert.match(html, /data-close-task/);
+  assert.match(app, /taskForm'\)\.addEventListener\('submit'/);
+  assert.match(app, /function closeTaskDialog/);
+  assert.doesNotMatch(app, /createTaskButton'\)\.addEventListener\('click'/);
+});
+
+test('content and partnership generation mutate persisted workspace state', () => {
+  assert.match(app, /const ideas = \[/);
+  assert.match(app, /state\.content\.unshift/);
+  assert.match(app, /const candidates = \[/);
+  assert.match(app, /state\.leads\.unshift/);
+});
+
 test('contains no merge markers or leaked conflict branch labels', () => {
   const debris = /^(<<<<<<<|=======|>>>>>>>)( |$)|^\s*(codex\/create-proposal-for-client-management-tools-[a-z0-9]+|main)\s*$/m;
   for (const [path, content] of files) assert.doesNotMatch(content, debris, path);
