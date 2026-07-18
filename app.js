@@ -77,6 +77,8 @@ Object.keys(defaults).forEach((key) => {
 });
 let currentFilter = 'All';
 let currentPage = 'Command Center';
+let currentContentView = 'Pipeline';
+let editingContentId = null;
 const homeMarkup = document.querySelector('#pageContent').innerHTML;
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => [...document.querySelectorAll(selector)];
@@ -189,10 +191,13 @@ const views = {
   },
   'Content Studio'() {
     const review = state.content.filter((item) => item.status === 'Review').length;
+    const contentItems = currentContentView === 'Calendar'
+      ? [...state.content].sort((a, b) => (a.date === 'Unscheduled') - (b.date === 'Unscheduled') || a.date.localeCompare(b.date))
+      : state.content;
     return `${pageHeader('Content Studio', 'Move on-brand ideas from brief to approval and schedule.', '<button class="primary-btn" id="generateContent">✦ Generate draft</button>')}
-      ${summaryCards([{ icon: '✦', value: review, label: 'Waiting for review', color: 'purple' }, { icon: '□', value: state.content.length, label: 'In calendar', color: 'blue' }, { icon: '↗', value: '8.4%', label: 'Reach growth' }])}
-      <section class="module-layout"><article class="module-card"><div class="module-card-head"><div><h3>Editorial pipeline</h3><p>Drafts and scheduled content across connected channels.</p></div><div class="segmented"><button class="active">Pipeline</button><button>Calendar</button></div></div><div class="content-list">${state.content.map((item) => `<article class="content-row"><span class="channel-icon">${item.channel.startsWith('X') ? '𝕏' : 'in'}</span><div class="content-main"><span><b>${escapeHtml(item.title)}</b><em class="status-pill ${item.status.toLowerCase()}">${item.status}</em></span><p>${escapeHtml(item.copy)}</p><small>${item.channel} · ${item.campaign} · ${item.date}</small></div>${item.status === 'Review' ? `<button class="approve-btn" data-approve-content="${item.id}">Approve</button>` : '<button class="row-menu">•••</button>'}</article>`).join('')}</div></article>
-      <aside class="module-card brief-card"><span class="module-symbol purple">✦</span><h3>Agent brief</h3><p>Content Strategist is using your brand voice, launch narrative, and recent performance data.</p><dl><div><dt>Primary goal</dt><dd>Mainnet awareness</dd></div><div><dt>Audience</dt><dd>Protocol builders</dd></div><div><dt>Voice match</dt><dd>94%</dd></div></dl><button class="secondary-btn full">Edit brand profile</button></aside></section>`;
+      ${summaryCards([{ icon: '✦', value: review, label: 'Waiting for review', color: 'purple' }, { icon: '□', value: state.content.filter((item) => item.status === 'Scheduled').length, label: 'Scheduled', color: 'blue' }, { icon: '↗', value: state.content.length, label: 'Total assets' }])}
+      <section class="module-layout"><article class="module-card"><div class="module-card-head"><div><h3>${currentContentView === 'Calendar' ? 'Publishing calendar' : 'Editorial pipeline'}</h3><p>${currentContentView === 'Calendar' ? 'Scheduled and unscheduled assets ordered by publishing date.' : 'Drafts and scheduled content across connected channels.'}</p></div><div class="segmented"><button class="${currentContentView === 'Pipeline' ? 'active' : ''}" data-content-view="Pipeline">Pipeline</button><button class="${currentContentView === 'Calendar' ? 'active' : ''}" data-content-view="Calendar">Calendar</button></div></div><div class="content-list">${contentItems.map((item) => `<article class="content-row"><span class="channel-icon">${item.channel.startsWith('X') ? '𝕏' : item.channel === 'LinkedIn' ? 'in' : '✦'}</span><div class="content-main"><span><b>${escapeHtml(item.title)}</b><em class="status-pill ${item.status.toLowerCase()}">${item.status}</em></span><p>${escapeHtml(item.copy)}</p><small>${escapeHtml(item.channel)} · ${escapeHtml(item.campaign)} · ${escapeHtml(item.date)}</small></div><div class="row-actions"><button class="secondary-btn compact" data-preview-content="${item.id}">Preview</button><button class="secondary-btn compact" data-edit-content="${item.id}">Edit</button>${item.status === 'Review' ? `<button class="approve-btn" data-approve-content="${item.id}">Approve</button>` : ''}<button class="row-menu delete-content" data-delete-content="${item.id}" aria-label="Delete ${escapeHtml(item.title)}">×</button></div></article>`).join('') || emptyState('✦', 'No content yet', 'Generate a draft to start the editorial pipeline.')}</div></article>
+      <aside class="module-card brief-card"><span class="module-symbol purple">✦</span><h3>Agent brief</h3><p>Content Strategist is using your brand voice, launch narrative, and recent performance data.</p><dl><div><dt>Primary goal</dt><dd>Mainnet awareness</dd></div><div><dt>Audience</dt><dd>Protocol builders</dd></div><div><dt>Voice match</dt><dd>94%</dd></div></dl><button class="secondary-btn full" data-page-link="Settings">Edit brand profile</button></aside></section>`;
   },
   Community() {
     return `${pageHeader('Community Desk', 'Understand conversations, emerging risks, and unanswered questions.', '<button class="primary-btn" id="runScan">◌ Run live scan</button>')}
@@ -233,7 +238,27 @@ const views = {
 };
 
 function attachModuleEvents(page) {
-  $$('[data-open-task]').forEach((button) => button.addEventListener('click', openTaskDialog));
+  $('[data-content-view]').forEach((button) => button.addEventListener('click', () => { currentContentView = button.dataset.contentView; navigate('Content Studio'); }));
+  $('[data-preview-content]').forEach((button) => button.addEventListener('click', () => {
+    const item = state.content.find((content) => content.id === Number(button.dataset.previewContent));
+    if (!item) return;
+    $('#previewTitle').textContent = item.title;
+    $('#previewMeta').textContent = `${item.channel} · ${item.status} · ${item.date}`;
+    $('#previewCopy').textContent = item.copy;
+    const dialog = $('#contentPreviewDialog'); if (typeof dialog.showModal === 'function') dialog.showModal(); else dialog.setAttribute('open', '');
+  }));
+  $('[data-edit-content]').forEach((button) => button.addEventListener('click', () => {
+    const item = state.content.find((content) => content.id === Number(button.dataset.editContent));
+    if (!item) return;
+    editingContentId = item.id; $('#contentTitle').value = item.title; $('#contentCopy').value = item.copy; $('#contentChannel').value = item.channel; $('#contentStatus').value = item.status; $('#contentDate').value = item.date === 'Unscheduled' ? '' : item.date;
+    const dialog = $('#contentDialog'); if (typeof dialog.showModal === 'function') dialog.showModal(); else dialog.setAttribute('open', '');
+  }));
+  $('[data-delete-content]').forEach((button) => button.addEventListener('click', () => {
+    const item = state.content.find((content) => content.id === Number(button.dataset.deleteContent));
+    if (!item || !window.confirm(`Delete “${item.title}”?`)) return;
+    state.content = state.content.filter((content) => content.id !== item.id); recordActivity('✦', `Deleted content: ${item.title}`); navigate('Content Studio'); toast('Content removed from the workspace.');
+  }));
+  $('[data-open-task]').forEach((button) => button.addEventListener('click', openTaskDialog));
   if (page === 'Tasks') {
     renderTasks('#allTaskList');
     $('#moduleTaskFilters').addEventListener('click', (event) => {
@@ -343,6 +368,23 @@ $('#taskForm').addEventListener('submit', (event) => {
   closeTaskDialog();
   if (currentPage === 'Tasks') navigate('Tasks'); else if (currentPage === 'Command Center') { renderTasks(); renderActivity(); }
   toast('Task created and routed successfully.');
+});
+
+
+function closeContentDialog() {
+  editingContentId = null;
+  $('#contentForm').reset();
+  const dialog = $('#contentDialog'); if (typeof dialog.close === 'function') dialog.close(); else dialog.removeAttribute('open');
+}
+$('[data-close-content]').forEach((button) => button.addEventListener('click', closeContentDialog));
+$('[data-close-preview]').forEach((button) => button.addEventListener('click', () => { const dialog = $('#contentPreviewDialog'); if (typeof dialog.close === 'function') dialog.close(); else dialog.removeAttribute('open'); }));
+$('#contentForm').addEventListener('submit', (event) => {
+  event.preventDefault();
+  if (!event.currentTarget.reportValidity()) return;
+  const item = state.content.find((content) => content.id === editingContentId);
+  if (!item) return;
+  item.title = $('#contentTitle').value.trim(); item.copy = $('#contentCopy').value.trim(); item.channel = $('#contentChannel').value; item.status = $('#contentStatus').value; item.date = $('#contentDate').value.trim() || 'Unscheduled';
+  recordActivity('✦', `Updated content: ${item.title}`); closeContentDialog(); if (currentPage === 'Content Studio') navigate('Content Studio'); toast('Content changes saved.');
 });
 
 const commandDialog = $('#commandDialog');
