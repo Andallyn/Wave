@@ -15,3 +15,12 @@
 .boot-error{position:fixed;z-index:110;left:50%;bottom:22px;transform:translateX(-50%);width:min(560px,calc(100% - 30px));padding:14px 16px;border:1px solid #e4a7a0;border-radius:10px;background:#fff3f1;color:#702d26;box-shadow:0 14px 45px rgba(83,26,20,.25);display:flex;align-items:center;gap:10px}.boot-error[hidden]{display:none}.boot-error strong{font-size:11px}.boot-error span{flex:1;font-size:9px}.boot-error button{border:0;border-radius:6px;background:#8f3e34;color:#fff;padding:8px 10px;font-size:8px}
 
 .button-pulse{animation:buttonPulse .35s ease}.noscript-warning{position:fixed;inset:0;z-index:100;background:#fff;padding:40px;text-align:center;font:600 16px Manrope;color:#a33}@keyframes buttonPulse{0%{transform:scale(1)}45%{transform:scale(.96)}100%{transform:scale(1)}}
+
+/* Content Studio workflows */
+textarea{border:1px solid #dfe6e2;border-radius:7px;padding:10px 11px;color:var(--ink);background:white;outline:none;resize:vertical;font:inherit}
+textarea:focus{border-color:#39ae7d;box-shadow:0 0 0 3px #e1f6ed}
+.row-actions{display:flex;align-items:center;gap:6px;flex:none}
+.secondary-btn.compact{padding:7px 9px;font-size:8px}
+.delete-content{font-size:17px;color:#a75c50;padding:4px}
+.preview-dialog{padding:22px}.preview-copy{white-space:pre-wrap;line-height:1.7;color:#405048;background:#f7faf8;border:1px solid var(--line);border-radius:9px;padding:18px;min-height:150px}
+@media(max-width:780px){.content-row{flex-wrap:wrap}.row-actions{width:100%;padding-left:43px}.content-main{min-width:calc(100% - 45px)}}
