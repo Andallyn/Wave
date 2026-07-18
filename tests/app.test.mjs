@@ -21,6 +21,7 @@ test('provides a visible boot failure recovery path', () => {
   assert.match(html, /id="bootRetry"/);
   assert.match(html, /window\.WAVE_READY/);
   assert.match(html, /event\.lineno/);
+  assert.match(html, /source !== 'app\.js'/);
   assert.match(app, /window\.WAVE_READY = true/);
 });
 
@@ -46,6 +47,7 @@ test('submits and cancels tasks without native dialog validation deadlocks', () 
   assert.match(html, /data-close-task/);
   assert.match(app, /taskForm'\)\.addEventListener\('submit'/);
   assert.match(app, /function closeTaskDialog/);
+  assert.match(app, /\$\$\('\[data-close-task\]'\)\.forEach/);
   assert.doesNotMatch(app, /createTaskButton'\)\.addEventListener\('click'/);
 });
 

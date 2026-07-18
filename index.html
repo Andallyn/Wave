@@ -103,7 +103,7 @@
     window.WAVE_BOOT_ERROR = '';
     window.addEventListener('error', function (event) {
       var source = event.filename ? event.filename.split('/').pop() : '';
-      if (source && source.indexOf('wave-app') !== 0) return;
+      if (source && source !== 'app.js') return;
       var location = source && event.lineno ? ' (' + source + ':' + event.lineno + ':' + (event.colno || 0) + ')' : '';
       window.WAVE_BOOT_ERROR = (event.message || 'The application script could not be loaded.') + location;
     });
