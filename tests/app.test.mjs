@@ -2,28 +2,26 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 
-const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
-codex/create-proposal-for-client-management-tools-atb8dn
-const app = await readFile(new URL('../wave-app-v4.js', import.meta.url), 'utf8');
+const paths = ['README.md', 'index.html', 'plan.md', 'styles.css', 'app.js', 'package.json'];
+const files = new Map(await Promise.all(paths.map(async (path) => [
+  path,
+  await readFile(new URL(`../${path}`, import.meta.url), 'utf8')
+])));
+const html = files.get('index.html');
+const app = files.get('app.js');
 
-test('loads the cache-busted application bundle', () => {
-  assert.match(html, /<script src="wave-app-v4\.js"/);
-  assert.match(html, /onerror="window\.WAVE_BOOT_ERROR=/);
-const app = await readFile(new URL('../app.js', import.meta.url), 'utf8');
-
-test('loads the cache-busted application bundle', () => {
-  assert.match(html, /<script src="app\.js\?v=3"><\/script>/);
-main
+test('loads exactly one canonical application bundle and stylesheet', () => {
+  assert.equal((html.match(/<script src="app\.js\?v=4"/g) || []).length, 1);
+  assert.equal((html.match(/<link rel="stylesheet" href="styles\.css\?v=4"/g) || []).length, 1);
+  assert.doesNotMatch(html, /wave-app-v\d+\.js/);
 });
 
 test('provides a visible boot failure recovery path', () => {
   assert.match(html, /id="bootError"/);
   assert.match(html, /id="bootRetry"/);
   assert.match(html, /window\.WAVE_READY/);
-  assert.match(app, /window\.WAVE_READY = true/);
-codex/create-proposal-for-client-management-tools-atb8dn
   assert.match(html, /event\.lineno/);
-main
+  assert.match(app, /window\.WAVE_READY = true/);
 });
 
 test('binds every main navigation destination', () => {
@@ -42,4 +40,9 @@ test('versions persisted state and validates collection shapes', () => {
 test('supports browsers without the native dialog API', () => {
   assert.match(app, /typeof .*\.showModal === 'function'/);
   assert.match(app, /setAttribute\('open', ''\)/);
+});
+
+test('contains no merge markers or leaked conflict branch labels', () => {
+  const debris = /^(<<<<<<<|=======|>>>>>>>)( |$)|^\s*(codex\/create-proposal-for-client-management-tools-[a-z0-9]+|main)\s*$/m;
+  for (const [path, content] of files) assert.doesNotMatch(content, debris, path);
 });

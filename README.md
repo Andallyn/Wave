@@ -15,13 +15,7 @@ Wave should be positioned as **agency intelligence in a product**, not “fully 
 - **Executive overview:** live operating metrics, attention queue, goal progress, and an activity feed.
 - **Agent roster:** specialist agents for content, community, partnerships, and market intelligence with visible states and controls.
 - **Work management:** create, assign, filter, search, complete, and persist tasks.
-codex/create-proposal-for-client-management-tools-atb8dn
-codex/create-proposal-for-client-management-tools-9rnlng
-codex/create-proposal-for-client-management-tools-vzdnel
 -  codex/create-proposal-for-client-management-tools-rdmhq8
-main
-main
-main
 - **Content operations:** generate, review, approve, and schedule on-brand drafts from an editorial pipeline.
 - **Community Desk:** review evidence-linked signals, recurring questions, sentiment changes, and resolve incidents.
 - **Partnership pipeline:** move scored ecosystem leads from discovery through meetings using a visual board.
@@ -29,14 +23,7 @@ main
 - **Customer Health:** inspect explainable health changes and turn suggested interventions into assigned work.
 - **Finance Operations:** review deliverable-linked invoices through a dual-approval workflow without custodying funds.
 - **Outcome Analytics:** understand approved outcomes, time saved, cost efficiency, and specialist contributions.
-codex/create-proposal-for-client-management-tools-atb8dn
-codex/create-proposal-for-client-management-tools-9rnlng
-codex/create-proposal-for-client-management-tools-vzdnel
 - **Content operations:** review and approve draft content from a central queue.
-  main
-  main
- main
-main
 - **Quick actions:** create a task, draft a post, scan community signals, or open the command palette.
 - **Local workspace state:** changes persist in `localStorage`, making the demo usable across refreshes.
 - **Responsive interface:** designed for desktop operations and compact mobile monitoring.
@@ -53,20 +40,12 @@ python3 -m http.server 4173
 
 Then open [http://localhost:4173](http://localhost:4173).
 
-codex/create-proposal-for-client-management-tools-atb8dn
-codex/create-proposal-for-client-management-tools-9rnlng
-main
 If a deployed update appears but controls do not respond, hard-refresh the page (`Ctrl+Shift+R` on Windows/Linux or `Cmd+Shift+R` on macOS). Wave now tolerates unavailable or malformed browser storage and displays a clear warning when JavaScript is disabled.
 
 Run the dependency-free regression checks with `npm test`. If the JavaScript bundle ever fails to start in a deployment, Wave now shows an on-screen recovery panel with the browser error and a one-click saved-data reset instead of silently leaving inert controls.
 
-codex/create-proposal-for-client-management-tools-atb8dn
-codex/create-proposal-for-client-management-tools-vzdnel
 If a deployed update appears but controls do not respond, hard-refresh the page (`Ctrl+Shift+R` on Windows/Linux or `Cmd+Shift+R` on macOS). Wave now tolerates unavailable or malformed browser storage and displays a clear warning when JavaScript is disabled.
 
- main
- main
-main
 > The current repository is a high-fidelity, dependency-free front-end prototype. Production implementation should add authentication, a persistent database, background jobs, provider integrations, permissions, and billing before handling real customers or funds.
 
 ## Interaction guide
@@ -75,29 +54,15 @@ main
 2. Press **⌘/Ctrl + K** to search commands and workspaces.
 3. Select **New task** to add work; tasks are saved locally.
 4. Filter the Today queue by status and mark items complete.
-codex/create-proposal-for-client-management-tools-atb8dn
-codex/create-proposal-for-client-management-tools-9rnlng
-codex/create-proposal-for-client-management-tools-vzdnel
-codex/create-proposal-for-client-management-tools-rdmhq8
-main
-main
-main
 5. Open the Content Studio to generate and approve a draft for scheduling.
 6. Resolve a detected community signal or advance a qualified partnership lead.
 7. Save an event, create an intervention from a customer-health change, or approve an invoice for second review.
 8. Export an outcome report from Analytics.
 9. Pause or resume an agent from the Agent roster or Settings.
 10. Use **Reset demo data** in Settings to restore the original workspace.
-codex/create-proposal-for-client-management-tools-atb8dn
-codex/create-proposal-for-client-management-tools-9rnlng
-codex/create-proposal-for-client-management-tools-vzdnel
 5. Open the Content Studio or use **Draft post**, then approve a draft.
 6. Pause or resume an agent from the Agent roster.
 7. Use **Reset demo data** in Settings to restore the original workspace.
-main
-main
-main
-main
 
 ## Suggested production architecture
 
@@ -127,10 +92,7 @@ main
 .
 ├── index.html   # Application shell and dialogs
 ├── styles.css   # Responsive visual system
-codex/create-proposal-for-client-management-tools-atb8dn
-├── wave-app-v4.js # State, rendering, persistence, and interactions
 ├── app.js       # State, rendering, persistence, and interactions
-main
 ├── README.md    # Product and setup overview
 └── plan.md      # Product strategy and delivery roadmap
 ```
