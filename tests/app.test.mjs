@@ -181,6 +181,18 @@ test('provides a decision-ready persistent Daily Briefing', () => {
   assert.match(app, /Generated fresh Daily Briefing/);
 });
 
+
+test('provides a connected reschedulable Operations Calendar', () => {
+  assert.match(html, /data-page="Calendar"/);
+  assert.match(app, /Calendar\(\)/);
+  assert.match(app, /function calendarItems/);
+  assert.match(app, /function calendarItemMarkup/);
+  assert.match(app, /function rescheduleCalendarItem/);
+  ['data-calendar-filter', 'data-calendar-view', 'data-open-calendar', 'data-reschedule-calendar'].forEach((control) => assert.match(app, new RegExp(control)));
+  ['Content', 'Task', 'Campaign', 'Event'].forEach((type) => assert.match(app, new RegExp(type + ':')));
+  assert.match(app, /Schedule updated across the workspace/);
+});
+
 test('contains no merge markers or leaked conflict branch labels', () => {
   const debris = /^(<<<<<<<|=======|>>>>>>>)( |$)|^\s*(codex\/create-proposal-for-client-management-tools-[a-z0-9]+|main)\s*$/m;
   for (const [path, content] of files) assert.doesNotMatch(content, debris, path);
