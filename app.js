@@ -356,13 +356,13 @@ function applyApprovalDecision(id, status) {
 }
 
 function attachModuleEvents(page) {
-  $('[data-settings-tab]').forEach((button) => button.addEventListener('click', () => { currentSettingsTab = button.dataset.settingsTab; navigate('Settings'); }));
+  $$('[data-settings-tab]').forEach((button) => button.addEventListener('click', () => { currentSettingsTab = button.dataset.settingsTab; navigate('Settings'); }));
   $('#brandMemoryForm')?.addEventListener('submit', (event) => {
     event.preventDefault(); const data = new FormData(event.currentTarget); const previous = state.brandProfile.name;
     state.brandProfile = Object.fromEntries(['name', 'voice', 'audience', 'promise', 'avoid', 'terms'].map((key) => [key, String(data.get(key) || '').trim()]));
     recordActivity('◈', `Updated brand memory for ${state.brandProfile.name}`, { actor: 'Alex Morgan', module: 'Settings', category: 'Operations', evidence: `Brand profile updated · previous name: ${previous}` }); navigate('Settings'); toast('Brand memory saved and shared with Wave agents.');
   });
-  $('[data-member-role]').forEach((select) => select.addEventListener('change', () => {
+  $$('[data-member-role]').forEach((select) => select.addEventListener('change', () => {
     const member = state.members.find((item) => item.id === Number(select.dataset.memberRole)); if (!member) return; const previous = member.role; member.role = select.value;
     recordActivity('♙', `Changed ${member.name}'s role to ${member.role}`, { actor: 'Alex Morgan', module: 'Settings', category: 'Decision', evidence: `Access changed from ${previous} to ${member.role}` }); navigate('Settings'); toast(`${member.name} is now a ${member.role}.`);
   }));
