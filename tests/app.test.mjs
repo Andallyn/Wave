@@ -147,6 +147,20 @@ test('provides interactive exportable Live Analytics', () => {
   assert.match(app, /Refreshed live analytics/);
 });
 
+
+test('provides connected Goals and Outcomes planning', () => {
+  assert.match(html, /data-page="Goals"/);
+  assert.match(app, /goals: \[/);
+  assert.match(app, /Goals\(\)/);
+  assert.match(app, /function goalProgress/);
+  assert.match(app, /keyResults/);
+  assert.match(app, /data-goal-filter/);
+  assert.match(app, /data-update-kr/);
+  assert.match(app, /data-open-goal-campaign/);
+  assert.match(app, /id="createGoal"/);
+  assert.match(app, /Updated key result/);
+});
+
 test('contains no merge markers or leaked conflict branch labels', () => {
   const debris = /^(<<<<<<<|=======|>>>>>>>)( |$)|^\s*(codex\/create-proposal-for-client-management-tools-[a-z0-9]+|main)\s*$/m;
   for (const [path, content] of files) assert.doesNotMatch(content, debris, path);
