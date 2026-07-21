@@ -88,6 +88,8 @@ const defaults = {
     { id: 903, action: 'Approved Mainnet campaign thread', actor: 'Alex Morgan', module: 'Approvals', category: 'Decision', evidence: '94% voice match · Brand review', time: '46m ago' },
     { id: 904, action: 'Matched invoice to deliverable', actor: 'Finance Operations', module: 'Finance', category: 'Operations', evidence: 'Northstar Design · Mainnet launch creative', time: '1h ago' }
   ],
+  briefingDismissed: [],
+  briefingSnoozed: [],
   completed: 18
 };
 
@@ -101,7 +103,7 @@ function readStoredState() {
   try {
     const saved = JSON.parse(window.localStorage.getItem(STATE_KEY) || 'null');
     if (!saved || typeof saved !== 'object') return null;
-    const arrays = ['tasks', 'agents', 'activities', 'content', 'signals', 'leads', 'events', 'customers', 'invoices', 'approvals', 'campaigns', 'audit', 'members', 'connectors', 'goals'];
+    const arrays = ['tasks', 'agents', 'activities', 'content', 'signals', 'leads', 'events', 'customers', 'invoices', 'approvals', 'campaigns', 'audit', 'members', 'connectors', 'goals', 'briefingDismissed', 'briefingSnoozed'];
     return arrays.every((key) => saved[key] === undefined || Array.isArray(saved[key])) ? saved : null;
   } catch (error) {
     console.warn('Wave could not read saved workspace data. Starting with demo data.', error);
@@ -126,6 +128,8 @@ let currentSettingsTab = 'Agents';
 let currentAnalyticsRange = '30';
 let currentAnalyticsCampaign = 'All';
 let currentGoalFilter = 'All';
+let currentBriefingFilter = 'All';
+let briefingRefreshedAt = 'just now';
 let analyticsRefreshedAt = 'just now';
 const homeMarkup = document.querySelector('#pageContent').innerHTML;
 const $ = (selector) => document.querySelector(selector);
@@ -242,6 +246,14 @@ function summaryCards(cards) {
 }
 
 const views = {
+  Briefing() {
+    const items = briefingItems().filter((item) => currentBriefingFilter === 'All' || item.type === currentBriefingFilter); const allItems = briefingItems(); const urgent = allItems.filter((item) => item.priority === 'High').length;
+    return `${pageHeader('Daily Briefing', 'A decision-ready summary of what changed, what needs attention, and where to act next.', '<button class="primary-btn" id="refreshBriefing">✦ Generate fresh brief</button>')}
+      ${summaryCards([{ icon: '!', value: urgent, label: 'High-priority items', color: 'amber' }, { icon: '⌾', value: allItems.filter((item) => item.type === 'Decision').length, label: 'Decisions needed', color: 'purple' }, { icon: '↗', value: allItems.filter((item) => item.type === 'Opportunity').length, label: 'Opportunities', color: 'blue' }, { icon: '✓', value: state.briefingDismissed.length, label: 'Items handled' }])}
+      <section class="briefing-hero module-card"><div><p class="eyebrow">EXECUTIVE SUMMARY · UPDATED ${escapeHtml(briefingRefreshedAt)}</p><h2>${urgent ? `${urgent} priority ${urgent === 1 ? 'item needs' : 'items need'} your attention` : 'Your workspace is operating smoothly'}</h2><p>${urgent ? 'Approvals and at-risk outcomes are the fastest path to unblock progress today.' : 'Review opportunities below or continue planned campaign execution.'}</p></div><span class="briefing-score"><strong>${Math.max(0, 100 - urgent * 12)}</strong><small>Workspace readiness</small></span></section>
+      <section class="briefing-toolbar module-card"><div class="segmented">${['All', 'Decision', 'Risk', 'Opportunity'].map((filter) => `<button class="${currentBriefingFilter === filter ? 'active' : ''}" data-briefing-filter="${filter}">${filter}</button>`).join('')}</div><small>${items.length} active recommendations</small></section>
+      <section class="briefing-layout"><div class="briefing-feed">${items.map((item) => `<article class="module-card briefing-item"><span class="briefing-priority ${item.priority.toLowerCase()}">${item.priority}</span><div><span><em class="status-pill ${item.type === 'Risk' ? 'needs' : item.type === 'Opportunity' ? 'scheduled' : 'draft'}">${item.type}</em><small>${escapeHtml(item.source)}</small></span><h3>${escapeHtml(item.title)}</h3><p>${escapeHtml(item.why)}</p><strong>Recommended: ${escapeHtml(item.action)}</strong></div><aside><button class="primary-btn" data-open-briefing="${item.page}">Open ${escapeHtml(item.page)}</button><button class="text-btn" data-dismiss-briefing="${item.id}">Mark handled</button><button class="text-btn" data-snooze-briefing="${item.id}">Snooze</button></aside></article>`).join('') || emptyState('✓', 'Briefing cleared', 'You handled every item in this view. Generate a fresh brief when workspace data changes.')}</div><aside class="module-card briefing-context"><div class="module-card-head"><div><h3>Today’s context</h3><p>Signals shaping these recommendations.</p></div></div><div><span><b>${state.approvals.filter((item) => item.status === 'Pending').length}</b><small>Pending approvals</small></span><span><b>${state.tasks.filter((item) => item.type === 'Urgent').length}</b><small>Urgent tasks</small></span><span><b>${state.goals.filter((item) => item.status === 'At risk').length}</b><small>At-risk goals</small></span><span><b>${state.connectors.filter((item) => item.status !== 'Healthy').length}</b><small>Connector issues</small></span></div><button class="full-link" data-page-link="Audit Trail">Review supporting evidence <span>→</span></button></aside></section>`;
+  },
   Goals() {
     const visible = currentGoalFilter === 'All' ? state.goals : state.goals.filter((goal) => goal.status === currentGoalFilter); const progresses = state.goals.map(goalProgress); const overall = progresses.length ? Math.round(progresses.reduce((sum, value) => sum + value, 0) / progresses.length) : 0; const totalKrs = state.goals.reduce((sum, goal) => sum + goal.keyResults.length, 0); const achieved = state.goals.reduce((sum, goal) => sum + goal.keyResults.filter((kr) => kr.current >= kr.target).length, 0);
     return `${pageHeader('Goals & Outcomes', 'Turn strategy into measurable results connected to campaigns and execution.', '<button class="primary-btn" id="createGoal">＋ New goal</button>')}
@@ -348,6 +360,16 @@ const views = {
 
 
 
+function briefingItems() {
+  const items = [];
+  state.approvals.filter((approval) => approval.status === 'Pending').slice(0, 2).forEach((approval) => items.push({ id: `approval-${approval.id}`, type: 'Decision', priority: approval.due === 'Today' ? 'High' : 'Medium', source: approval.owner, title: approval.title, why: `${approval.risk} · ${approval.evidence}`, action: 'Review the evidence and record a decision.', page: 'Approvals' }));
+  state.goals.filter((goal) => goal.status === 'At risk').forEach((goal) => items.push({ id: `goal-${goal.id}`, type: 'Risk', priority: 'High', source: 'Goals & Outcomes', title: goal.title, why: `Progress is ${goalProgress(goal)}% with a ${goal.deadline} deadline.`, action: 'Update the weakest key result or adjust campaign execution.', page: 'Goals' }));
+  state.signals.filter((signal) => !signal.resolved && signal.level === 'Urgent').slice(0, 1).forEach((signal) => items.push({ id: `signal-${signal.id}`, type: 'Risk', priority: 'High', source: signal.source, title: signal.title, why: signal.detail, action: 'Review the signal and approve a response.', page: 'Community' }));
+  state.leads.filter((lead) => ['Discovered', 'Qualified'].includes(lead.stage) && lead.fit >= 85).slice(0, 2).forEach((lead) => items.push({ id: `lead-${lead.id}`, type: 'Opportunity', priority: lead.fit >= 92 ? 'High' : 'Medium', source: 'Partnership Scout', title: `${lead.company} is a ${lead.fit}% fit`, why: lead.reason, action: 'Review the lead and advance the partnership.', page: 'Partnerships' }));
+  state.connectors.filter((connector) => connector.status !== 'Healthy').forEach((connector) => items.push({ id: `connector-${connector.id}`, type: 'Risk', priority: 'Medium', source: 'Agent Operations', title: `${connector.name} connector needs attention`, why: `Last successful sync was ${connector.lastSync}.`, action: 'Run a connector sync to restore fresh data.', page: 'Agent Operations' }));
+  return items.filter((item) => !state.briefingDismissed.includes(item.id) && !state.briefingSnoozed.includes(item.id));
+}
+
 function goalProgress(goal) {
   if (!goal.keyResults.length) return 0;
   return Math.round(goal.keyResults.reduce((sum, kr) => sum + Math.min(1, kr.current / kr.target), 0) / goal.keyResults.length * 100);
@@ -399,6 +421,11 @@ function applyApprovalDecision(id, status) {
 }
 
 function attachModuleEvents(page) {
+  $$('[data-briefing-filter]').forEach((button) => button.addEventListener('click', () => { currentBriefingFilter = button.dataset.briefingFilter; navigate('Briefing'); }));
+  $$('[data-open-briefing]').forEach((button) => button.addEventListener('click', () => navigate(button.dataset.openBriefing)));
+  $$('[data-dismiss-briefing]').forEach((button) => button.addEventListener('click', () => { state.briefingDismissed.push(button.dataset.dismissBriefing); recordActivity('✓', 'Handled Daily Briefing item', { actor: 'Alex Morgan', module: 'Briefing', category: 'Decision', evidence: button.dataset.dismissBriefing }); navigate('Briefing'); toast('Item marked as handled.'); }));
+  $$('[data-snooze-briefing]').forEach((button) => button.addEventListener('click', () => { state.briefingSnoozed.push(button.dataset.snoozeBriefing); recordActivity('◷', 'Snoozed Daily Briefing item', { actor: 'Alex Morgan', module: 'Briefing', category: 'Operations', evidence: button.dataset.snoozeBriefing }); navigate('Briefing'); toast('Item snoozed for this briefing.'); }));
+  $('#refreshBriefing')?.addEventListener('click', () => { state.briefingSnoozed = []; briefingRefreshedAt = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }); recordActivity('✦', 'Generated fresh Daily Briefing', { actor: 'Alex Morgan', module: 'Briefing', category: 'Operations', evidence: `${briefingItems().length} active recommendations` }); navigate('Briefing'); toast('Fresh briefing generated from current workspace data.'); });
   $$('[data-goal-filter]').forEach((button) => button.addEventListener('click', () => { currentGoalFilter = button.dataset.goalFilter; navigate('Goals'); }));
   $$('[data-update-kr]').forEach((button) => button.addEventListener('click', () => { const [goalId, krId] = button.dataset.updateKr.split(':').map(Number); const goal = state.goals.find((item) => item.id === goalId); const kr = goal?.keyResults.find((item) => item.id === krId); if (!kr) return; const value = window.prompt(`Update “${kr.title}” (target: ${kr.target}${kr.unit})`, String(kr.current)); if (value === null) return; const next = Number(value); if (!Number.isFinite(next) || next < 0) { toast('Enter a valid positive number.'); return; } const previous = kr.current; kr.current = next; const progress = goalProgress(goal); goal.status = progress >= 100 ? 'Complete' : progress < 55 ? 'At risk' : 'On track'; recordActivity('◎', `Updated key result: ${kr.title}`, { actor: 'Alex Morgan', module: 'Goals', category: 'Decision', evidence: `${previous}${kr.unit} → ${kr.current}${kr.unit} · goal now ${progress}%` }); navigate('Goals'); toast('Key result and goal progress updated.'); }));
   $$('[data-open-goal-campaign]').forEach((button) => button.addEventListener('click', () => { currentCampaignId = Number(button.dataset.openGoalCampaign); navigate('Campaigns'); }));

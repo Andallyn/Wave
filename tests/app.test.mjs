@@ -169,6 +169,18 @@ test('keeps the expanded sidebar navigation independently scrollable', () => {
   assert.match(styles, /\.sidebar-footer\{flex:none/);
 });
 
+
+test('provides a decision-ready persistent Daily Briefing', () => {
+  assert.match(html, /data-page="Briefing"/);
+  assert.match(app, /Briefing\(\)/);
+  assert.match(app, /function briefingItems/);
+  assert.match(app, /briefingDismissed/);
+  assert.match(app, /briefingSnoozed/);
+  ['data-briefing-filter', 'data-open-briefing', 'data-dismiss-briefing', 'data-snooze-briefing'].forEach((control) => assert.match(app, new RegExp(control)));
+  assert.match(app, /id="refreshBriefing"/);
+  assert.match(app, /Generated fresh Daily Briefing/);
+});
+
 test('contains no merge markers or leaked conflict branch labels', () => {
   const debris = /^(<<<<<<<|=======|>>>>>>>)( |$)|^\s*(codex\/create-proposal-for-client-management-tools-[a-z0-9]+|main)\s*$/m;
   for (const [path, content] of files) assert.doesNotMatch(content, debris, path);
