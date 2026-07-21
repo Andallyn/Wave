@@ -24,3 +24,10 @@ textarea:focus{border-color:#39ae7d;box-shadow:0 0 0 3px #e1f6ed}
 .delete-content{font-size:17px;color:#a75c50;padding:4px}
 .preview-dialog{padding:22px}.preview-copy{white-space:pre-wrap;line-height:1.7;color:#405048;background:#f7faf8;border:1px solid var(--line);border-radius:9px;padding:18px;min-height:150px}
 @media(max-width:780px){.content-row{flex-wrap:wrap}.row-actions{width:100%;padding-left:43px}.content-main{min-width:calc(100% - 45px)}}
+
+/* Approval Inbox */
+.approval-row{display:flex;align-items:flex-start;gap:12px;padding:17px 18px;border-bottom:1px solid var(--line)}.approval-row:last-child{border-bottom:0}
+.approval-main{flex:1;min-width:0}.approval-main>div{display:flex;align-items:center;gap:8px}.approval-main h3{font:700 11px Manrope;margin:0}.approval-main p{font-size:9px;color:#53635b;margin:7px 0 4px}.approval-main small{display:block;color:var(--muted);font-size:8px}
+.risk-note,.decision-note{display:inline-block;margin:9px 6px 0 0;padding:4px 7px;border-radius:5px;font-size:8px}.risk-note{background:#fff0e8;color:#a95a38}.decision-note{background:#edf5f1;color:#406a58}
+.approval-actions{display:flex;align-items:center;gap:7px}.approval-row time{color:var(--muted);font-size:8px}.status-pill.approved{background:#e6f6ed;color:#26835e}.status-pill.rejected{background:#ffe9e5;color:#bd5039}
+@media(max-width:650px){.approval-row{flex-wrap:wrap}.approval-actions{width:100%;padding-left:44px}.approval-row time{margin-left:44px}}

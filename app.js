@@ -49,6 +49,12 @@ const defaults = {
     { id: 602, vendor: 'Commons Guild', amount: 1800, due: 'Jul 24', status: 'Scheduled', deliverable: 'Community workshop series' },
     { id: 603, vendor: 'Maya Chen', amount: 2400, due: 'Jul 28', status: 'Draft', deliverable: 'July content production' }
   ],
+  approvals: [
+    { id: 701, type: 'Content', title: 'Road to Mainnet campaign thread', owner: 'Content Strategist', risk: 'Brand review', evidence: 'Mainnet brief · 94% voice match', due: 'Today', status: 'Pending', targetId: 101 },
+    { id: 702, type: 'Community', title: 'Response to wallet connection reports', owner: 'Community Guardian', risk: 'Public incident response', evidence: '28 Discord messages · negative sentiment', due: 'Today', status: 'Pending', targetId: 201 },
+    { id: 703, type: 'Outreach', title: 'First contact with LayerZero Labs', owner: 'Partnership Scout', risk: 'First external outreach', evidence: '94% fit · 3 mutual partners', due: 'Today', status: 'Pending', targetId: 301 },
+    { id: 704, type: 'Finance', title: 'Northstar Design invoice · $3,200', owner: 'Finance Operations', risk: 'Dual approval', evidence: 'Matched to Mainnet launch creative', due: 'Jul 19', status: 'Pending', targetId: 601 }
+  ],
   completed: 18
 };
 
@@ -62,7 +68,7 @@ function readStoredState() {
   try {
     const saved = JSON.parse(window.localStorage.getItem(STATE_KEY) || 'null');
     if (!saved || typeof saved !== 'object') return null;
-    const arrays = ['tasks', 'agents', 'activities', 'content', 'signals', 'leads', 'events', 'customers', 'invoices'];
+    const arrays = ['tasks', 'agents', 'activities', 'content', 'signals', 'leads', 'events', 'customers', 'invoices', 'approvals'];
     return arrays.every((key) => saved[key] === undefined || Array.isArray(saved[key])) ? saved : null;
   } catch (error) {
     console.warn('Wave could not read saved workspace data. Starting with demo data.', error);
@@ -79,6 +85,7 @@ let currentFilter = 'All';
 let currentPage = 'Command Center';
 let currentContentView = 'Pipeline';
 let editingContentId = null;
+let currentApprovalFilter = 'Pending';
 const homeMarkup = document.querySelector('#pageContent').innerHTML;
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => [...document.querySelectorAll(selector)];
@@ -184,6 +191,13 @@ function summaryCards(cards) {
 }
 
 const views = {
+  Approvals() {
+    const visible = currentApprovalFilter === 'All' ? state.approvals : state.approvals.filter((item) => item.status === currentApprovalFilter);
+    const pending = state.approvals.filter((item) => item.status === 'Pending').length;
+    return `${pageHeader('Approval Inbox', 'Review high-impact agent actions with evidence, risk context, and an auditable decision.')}
+      ${summaryCards([{ icon: '⌾', value: pending, label: 'Waiting for decision', color: 'amber' }, { icon: '✓', value: state.approvals.filter((item) => item.status === 'Approved').length, label: 'Approved' }, { icon: '!', value: state.approvals.filter((item) => item.risk === 'Dual approval' && item.status === 'Pending').length, label: 'Dual approval', color: 'blue' }])}
+      <section class="module-card"><div class="module-toolbar"><div class="segmented" id="approvalFilters"><button class="${currentApprovalFilter === 'Pending' ? 'active' : ''}" data-approval-filter="Pending">Pending</button><button class="${currentApprovalFilter === 'Approved' ? 'active' : ''}" data-approval-filter="Approved">Approved</button><button class="${currentApprovalFilter === 'Rejected' ? 'active' : ''}" data-approval-filter="Rejected">Rejected</button><button class="${currentApprovalFilter === 'All' ? 'active' : ''}" data-approval-filter="All">All</button></div><span class="safe-chip">Human decision required</span></div><div class="approval-list">${visible.map((item) => `<article class="approval-row"><span class="module-symbol ${item.type === 'Finance' ? 'blue' : item.type === 'Community' ? 'amber' : item.type === 'Content' ? 'purple' : 'mint'}">${item.type[0]}</span><div class="approval-main"><div><h3>${escapeHtml(item.title)}</h3><em class="status-pill ${item.status.toLowerCase()}">${item.status}</em></div><p>${escapeHtml(item.evidence)}</p><small>${escapeHtml(item.owner)} · ${escapeHtml(item.type)} · Due ${escapeHtml(item.due)}</small><span class="risk-note">Risk: ${escapeHtml(item.risk)}</span>${item.decision ? `<span class="decision-note">${escapeHtml(item.decision)}</span>` : ''}</div>${item.status === 'Pending' ? `<div class="approval-actions"><button class="secondary-btn" data-reject-approval="${item.id}">Reject</button><button class="approve-btn" data-approve-action="${item.id}">Approve</button></div>` : `<time>${escapeHtml(item.decidedAt || 'Recorded')}</time>`}</article>`).join('') || emptyState('✓', 'Nothing here', 'No approval decisions match this filter.')}</div></section>`;
+  },
   Tasks() {
     return `${pageHeader('Work queue', 'Plan, assign, and approve work across your human and agent team.', '<button class="primary-btn" data-open-task>＋ New task</button>')}
       ${summaryCards([{ icon: '!', value: state.tasks.filter((t) => t.type === 'Urgent').length, label: 'Urgent', color: 'amber' }, { icon: '✓', value: state.completed, label: 'Completed this week' }, { icon: '◷', value: state.tasks.length, label: 'Open work', color: 'blue' }])}
@@ -237,7 +251,33 @@ const views = {
   }
 };
 
+
+function updateApprovalBadge() {
+  const badge = $('#approvalBadge');
+  if (badge) badge.textContent = state.approvals.filter((item) => item.status === 'Pending').length;
+}
+
+function applyApprovalDecision(id, status) {
+  const approval = state.approvals.find((item) => item.id === id);
+  if (!approval || approval.status !== 'Pending') return;
+  let decision = status === 'Approved' ? 'Approved and released to the responsible workflow.' : window.prompt('Why are you rejecting this action?', 'Needs revision before release.');
+  if (status === 'Rejected' && decision === null) return;
+  approval.status = status; approval.decision = decision || 'Rejected for revision.'; approval.decidedAt = new Date().toLocaleString();
+  if (status === 'Approved') {
+    if (approval.type === 'Content') { const item = state.content.find((content) => content.id === approval.targetId); if (item) item.status = 'Scheduled'; }
+    if (approval.type === 'Community') { const signal = state.signals.find((item) => item.id === approval.targetId); if (signal) signal.resolved = true; }
+    if (approval.type === 'Outreach') { const lead = state.leads.find((item) => item.id === approval.targetId); if (lead) lead.stage = 'Contacted'; }
+    if (approval.type === 'Finance') { const invoice = state.invoices.find((item) => item.id === approval.targetId); if (invoice) invoice.status = 'Awaiting second approval'; }
+    state.completed += 1;
+  }
+  recordActivity(status === 'Approved' ? '✓' : '!', `${status}: ${approval.title}`);
+  updateApprovalBadge(); navigate('Approvals'); toast(`Decision recorded: ${status.toLowerCase()}.`);
+}
+
 function attachModuleEvents(page) {
+  $$('[data-approval-filter]').forEach((button) => button.addEventListener('click', () => { currentApprovalFilter = button.dataset.approvalFilter; navigate('Approvals'); }));
+  $$('[data-approve-action]').forEach((button) => button.addEventListener('click', () => applyApprovalDecision(Number(button.dataset.approveAction), 'Approved')));
+  $$('[data-reject-approval]').forEach((button) => button.addEventListener('click', () => applyApprovalDecision(Number(button.dataset.rejectApproval), 'Rejected')));
   $$('[data-content-view]').forEach((button) => button.addEventListener('click', () => { currentContentView = button.dataset.contentView; navigate('Content Studio'); }));
   $$('[data-preview-content]').forEach((button) => button.addEventListener('click', () => {
     const item = state.content.find((content) => content.id === Number(button.dataset.previewContent));
@@ -327,6 +367,7 @@ function navigate(page) {
   $('#breadcrumb').textContent = `WORKSPACE / ${page.toUpperCase()}`;
   $('#pageContent').innerHTML = page === 'Command Center' ? homeMarkup : views[page]();
   $('#sidebar').classList.remove('open');
+  updateApprovalBadge();
   if (page === 'Command Center') attachHomeEvents(); else attachModuleEvents(page);
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
@@ -346,7 +387,7 @@ function closeTaskDialog() {
 }
 
 function attachHomeEvents() {
-  renderTasks(); renderAgents(); renderActivity();
+  renderTasks(); renderAgents(); renderActivity(); updateApprovalBadge();
   $('#taskFilters')?.addEventListener('click', (event) => { if (!event.target.dataset.filter) return; currentFilter = event.target.dataset.filter; $$('#taskFilters button').forEach((button) => button.classList.toggle('active', button === event.target)); renderTasks(); });
   $$('[data-open-task]').forEach((button) => button.addEventListener('click', openTaskDialog));
   $$('[data-page-link]').forEach((button) => button.addEventListener('click', () => navigate(button.dataset.pageLink)));

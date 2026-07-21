@@ -73,6 +73,18 @@ test('never iterates a single-element selector as a collection', () => {
   assert.match(app, /\$\$\('\[data-content-view\]'\)\.forEach/);
 });
 
+test('provides an evidence-based unified Approval Inbox', () => {
+  assert.match(html, /data-page="Approvals"/);
+  ['Content', 'Community', 'Outreach', 'Finance'].forEach((type) => assert.match(app, new RegExp(`type: '${type}'`)));
+  assert.match(app, /function applyApprovalDecision/);
+  assert.match(app, /data-approval-filter/);
+  assert.match(app, /data-approve-action/);
+  assert.match(app, /data-reject-approval/);
+  assert.match(app, /approval\.decision/);
+  assert.match(app, /approval\.decidedAt/);
+  assert.match(app, /invoice\.status = 'Awaiting second approval'/);
+});
+
 test('contains no merge markers or leaked conflict branch labels', () => {
   const debris = /^(<<<<<<<|=======|>>>>>>>)( |$)|^\s*(codex\/create-proposal-for-client-management-tools-[a-z0-9]+|main)\s*$/m;
   for (const [path, content] of files) assert.doesNotMatch(content, debris, path);
