@@ -59,6 +59,19 @@ const defaults = {
     { id: 703, type: 'Outreach', title: 'First contact with LayerZero Labs', owner: 'Partnership Scout', risk: 'First external outreach', evidence: '94% fit · 3 mutual partners', due: 'Today', status: 'Pending', targetId: 301 },
     { id: 704, type: 'Finance', title: 'Northstar Design invoice · $3,200', owner: 'Finance Operations', risk: 'Dual approval', evidence: 'Matched to Mainnet launch creative', due: 'Jul 19', status: 'Pending', targetId: 601 }
   ],
+  brandProfile: {
+    name: 'Nova Protocol',
+    voice: 'Clear, optimistic, technically credible',
+    audience: 'Web3 builders, ecosystem partners, and community operators',
+    promise: 'Open infrastructure that helps communities build and coordinate',
+    avoid: 'Hype, guaranteed outcomes, unexplained jargon',
+    terms: 'builders, open infrastructure, community-owned, resilient'
+  },
+  members: [
+    { id: 1001, name: 'Alex Morgan', email: 'alex@novaprotocol.xyz', role: 'Owner', initials: 'AM' },
+    { id: 1002, name: 'Maya Chen', email: 'maya@novaprotocol.xyz', role: 'Editor', initials: 'MC' },
+    { id: 1003, name: 'Jordan Lee', email: 'jordan@novaprotocol.xyz', role: 'Reviewer', initials: 'JL' }
+  ],
   audit: [
     { id: 901, action: 'Created campaign drafts', actor: 'Content Strategist', module: 'Content Studio', category: 'Content', evidence: '3 assets linked to Mainnet launch', time: '12m ago' },
     { id: 902, action: 'Escalated wallet connection reports', actor: 'Community Guardian', module: 'Community', category: 'Operations', evidence: '28 Discord messages · negative sentiment', time: '28m ago' },
@@ -78,7 +91,7 @@ function readStoredState() {
   try {
     const saved = JSON.parse(window.localStorage.getItem(STATE_KEY) || 'null');
     if (!saved || typeof saved !== 'object') return null;
-    const arrays = ['tasks', 'agents', 'activities', 'content', 'signals', 'leads', 'events', 'customers', 'invoices', 'approvals', 'campaigns', 'audit'];
+    const arrays = ['tasks', 'agents', 'activities', 'content', 'signals', 'leads', 'events', 'customers', 'invoices', 'approvals', 'campaigns', 'audit', 'members'];
     return arrays.every((key) => saved[key] === undefined || Array.isArray(saved[key])) ? saved : null;
   } catch (error) {
     console.warn('Wave could not read saved workspace data. Starting with demo data.', error);
@@ -99,6 +112,7 @@ let currentApprovalFilter = 'Pending';
 let currentCampaignId = null;
 let currentAuditFilter = 'All';
 let currentAuditQuery = '';
+let currentSettingsTab = 'Agents';
 const homeMarkup = document.querySelector('#pageContent').innerHTML;
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => [...document.querySelectorAll(selector)];
@@ -289,8 +303,15 @@ const views = {
       <section class="analytics-layout"><article class="module-card chart-card"><div class="module-card-head"><div><h3>Approved outcomes shipped</h3><p>Weekly progress across your workspace</p></div><b>+18.4%</b></div><div class="bar-chart">${[35, 48, 42, 65, 58, 82, 76, 94].map((height, i) => `<div><i style="height:${height}%"></i><small>W${i + 1}</small></div>`).join('')}</div></article><article class="module-card"><div class="module-card-head"><div><h3>Agent contribution</h3><p>Approved work by specialist</p></div></div><div class="contribution-list">${state.agents.map((agent, i) => `<div><span class="agent-orb ${agent.color}">${agent.icon}</span><p><b>${agent.name}</b><small>${[42, 27, 18, 13][i]}% of outcomes</small></p><div><i style="width:${[84, 54, 36, 26][i]}%"></i></div></div>`).join('')}</div></article></section>`;
   },
   Settings() {
-    return `${pageHeader('Workspace Settings', 'Control brand context, agent boundaries, integrations, and demo data.')}
-      <section class="settings-layout"><nav class="settings-nav"><button class="active">Agent controls</button><button>Brand profile</button><button>Members & roles</button><button>Integrations</button><button>Notifications</button><button>Audit log</button></nav><article class="module-card settings-main"><div class="module-card-head"><div><h3>Agent controls</h3><p>Pause specialists and review their current operating boundary.</p></div></div><div id="agentList"></div><div class="settings-section"><h3>Approval policy</h3><div class="policy-row"><span><b>External publishing</b><small>Content always requires a human reviewer.</small></span><strong>Required</strong></div><div class="policy-row"><span><b>First partner outreach</b><small>New contacts cannot be messaged autonomously.</small></span><strong>Required</strong></div><div class="policy-row"><span><b>Payment instructions</b><small>Requires two authorized reviewers.</small></span><strong>Dual approval</strong></div></div><button class="reset-btn" id="resetDemo">Reset demo workspace</button></article></section>`;
+    const tabs = ['Agents', 'Brand memory', 'Members & roles'];
+    const rolePermissions = { Owner: 'Full workspace, billing, members, and approvals', Editor: 'Create and edit work; submit approvals', Reviewer: 'Review and decide assigned approvals', Viewer: 'Read-only workspace access' };
+    const nav = `<nav class="settings-nav">${tabs.map((tab) => `<button class="${currentSettingsTab === tab ? 'active' : ''}" data-settings-tab="${tab}">${tab}</button>`).join('')}<button data-page-link="Audit Trail">Audit Trail</button></nav>`;
+    let body = '';
+    if (currentSettingsTab === 'Agents') body = `<article class="module-card settings-main"><div class="module-card-head"><div><h3>Agent controls</h3><p>Pause specialists and review their current operating boundary.</p></div></div><div id="agentList"></div><div class="settings-section"><h3>Approval policy</h3><div class="policy-row"><span><b>External publishing</b><small>Content always requires a human reviewer.</small></span><strong>Required</strong></div><div class="policy-row"><span><b>First partner outreach</b><small>New contacts cannot be messaged autonomously.</small></span><strong>Required</strong></div><div class="policy-row"><span><b>Payment instructions</b><small>Requires two authorized reviewers.</small></span><strong>Dual approval</strong></div></div><button class="reset-btn" id="resetDemo">Reset demo workspace</button></article>`;
+    if (currentSettingsTab === 'Brand memory') body = `<article class="module-card settings-main"><div class="module-card-head"><div><h3>Brand memory</h3><p>The shared context Wave uses when generating content and recommendations.</p></div><span class="live-chip"><i></i>Used by agents</span></div><form id="brandMemoryForm" class="brand-form"><label>Brand name<input name="name" value="${escapeHtml(state.brandProfile.name)}" required></label><label>Voice and tone<textarea name="voice" rows="3" required>${escapeHtml(state.brandProfile.voice)}</textarea></label><label>Primary audience<textarea name="audience" rows="3" required>${escapeHtml(state.brandProfile.audience)}</textarea></label><label>Core promise<textarea name="promise" rows="3" required>${escapeHtml(state.brandProfile.promise)}</textarea></label><label>Words and claims to avoid<textarea name="avoid" rows="3">${escapeHtml(state.brandProfile.avoid)}</textarea></label><label>Preferred language<textarea name="terms" rows="3">${escapeHtml(state.brandProfile.terms)}</textarea></label><div class="brand-memory-foot"><small>Changes are recorded in Audit Trail and apply to future generated drafts.</small><button class="primary-btn" type="submit">Save brand memory</button></div></form></article>`;
+    if (currentSettingsTab === 'Members & roles') body = `<article class="module-card settings-main"><div class="module-card-head"><div><h3>Members & roles</h3><p>Make responsibility and workspace access explicit.</p></div><span class="safe-chip">${state.members.length} members</span></div><div class="role-guide">${Object.entries(rolePermissions).map(([role, permissions]) => `<div><b>${role}</b><small>${permissions}</small></div>`).join('')}</div><div class="member-list">${state.members.map((member) => `<div class="member-row"><span class="avatar">${escapeHtml(member.initials)}</span><span><b>${escapeHtml(member.name)}</b><small>${escapeHtml(member.email)}</small></span><select data-member-role="${member.id}" aria-label="Role for ${escapeHtml(member.name)}">${Object.keys(rolePermissions).map((role) => `<option ${member.role === role ? 'selected' : ''}>${role}</option>`).join('')}</select><small>${escapeHtml(rolePermissions[member.role] || '')}</small></div>`).join('')}</div></article>`;
+    return `${pageHeader('Workspace Settings', 'Control brand context, agent boundaries, roles, and accountability.')}
+      <section class="settings-layout">${nav}${body}</section>`;
   }
 };
 
@@ -335,6 +356,16 @@ function applyApprovalDecision(id, status) {
 }
 
 function attachModuleEvents(page) {
+  $('[data-settings-tab]').forEach((button) => button.addEventListener('click', () => { currentSettingsTab = button.dataset.settingsTab; navigate('Settings'); }));
+  $('#brandMemoryForm')?.addEventListener('submit', (event) => {
+    event.preventDefault(); const data = new FormData(event.currentTarget); const previous = state.brandProfile.name;
+    state.brandProfile = Object.fromEntries(['name', 'voice', 'audience', 'promise', 'avoid', 'terms'].map((key) => [key, String(data.get(key) || '').trim()]));
+    recordActivity('◈', `Updated brand memory for ${state.brandProfile.name}`, { actor: 'Alex Morgan', module: 'Settings', category: 'Operations', evidence: `Brand profile updated · previous name: ${previous}` }); navigate('Settings'); toast('Brand memory saved and shared with Wave agents.');
+  });
+  $('[data-member-role]').forEach((select) => select.addEventListener('change', () => {
+    const member = state.members.find((item) => item.id === Number(select.dataset.memberRole)); if (!member) return; const previous = member.role; member.role = select.value;
+    recordActivity('♙', `Changed ${member.name}'s role to ${member.role}`, { actor: 'Alex Morgan', module: 'Settings', category: 'Decision', evidence: `Access changed from ${previous} to ${member.role}` }); navigate('Settings'); toast(`${member.name} is now a ${member.role}.`);
+  }));
   $$('[data-audit-filter]').forEach((button) => button.addEventListener('click', () => { currentAuditFilter = button.dataset.auditFilter; navigate('Audit Trail'); }));
   $('#auditSearch')?.addEventListener('input', (event) => { currentAuditQuery = event.target.value; navigate('Audit Trail'); setTimeout(() => { const input = $('#auditSearch'); if (input) { input.focus(); input.setSelectionRange(input.value.length, input.value.length); } }, 0); });
   $('#exportAudit')?.addEventListener('click', () => {
@@ -399,7 +430,7 @@ function attachModuleEvents(page) {
     const usedTitles = new Set(state.content.map((item) => item.title));
     const draft = ideas.find((idea) => !usedTitles.has(idea.title)) || ideas[state.content.length % ideas.length];
     state.content.unshift({ id: Date.now(), ...draft, status: 'Draft', date: 'Unscheduled' });
-    recordActivity('✦', `Content Strategist generated: ${draft.title}`); navigate('Content Studio'); toast('New on-brand draft generated.');
+    recordActivity('✦', `Content Strategist generated: ${draft.title}`, { actor: 'Content Strategist', module: 'Content Studio', category: 'Content', evidence: `${state.brandProfile.name} · ${state.brandProfile.voice}` }); navigate('Content Studio'); toast(`New draft generated using ${state.brandProfile.name} brand memory.`);
   });
   $$('[data-resolve-signal]').forEach((button) => button.addEventListener('click', () => {
     const signal = state.signals.find((item) => item.id === Number(button.dataset.resolveSignal)); signal.resolved = true; recordActivity('◌', `Resolved signal: ${signal.title}`); navigate('Community'); toast('Signal resolved and logged.');
