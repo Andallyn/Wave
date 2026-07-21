@@ -96,6 +96,18 @@ test('provides connected Campaign Workspaces', () => {
   assert.match(app, /campaign\.taskIds\.push/);
 });
 
+
+test('provides a structured searchable Audit Trail', () => {
+  assert.match(html, /data-page="Audit Trail"/);
+  assert.match(app, /audit: \[/);
+  assert.match(app, /state\.audit\.unshift/);
+  ['actor', 'module', 'category', 'evidence', 'time'].forEach((field) => assert.match(app, new RegExp(field)));
+  assert.match(app, /data-audit-filter/);
+  assert.match(app, /id="auditSearch"/);
+  assert.match(app, /id="exportAudit"/);
+  assert.match(app, /wave-audit-trail\.csv/);
+});
+
 test('contains no merge markers or leaked conflict branch labels', () => {
   const debris = /^(<<<<<<<|=======|>>>>>>>)( |$)|^\s*(codex\/create-proposal-for-client-management-tools-[a-z0-9]+|main)\s*$/m;
   for (const [path, content] of files) assert.doesNotMatch(content, debris, path);
