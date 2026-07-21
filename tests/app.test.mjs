@@ -161,6 +161,14 @@ test('provides connected Goals and Outcomes planning', () => {
   assert.match(app, /Updated key result/);
 });
 
+
+test('keeps the expanded sidebar navigation independently scrollable', () => {
+  const styles = files.get('styles.css');
+  assert.match(styles, /\.nav\{[^}]*flex:1[^}]*min-height:0[^}]*overflow-y:auto/);
+  assert.match(styles, /overscroll-behavior:contain/);
+  assert.match(styles, /\.sidebar-footer\{flex:none/);
+});
+
 test('contains no merge markers or leaked conflict branch labels', () => {
   const debris = /^(<<<<<<<|=======|>>>>>>>)( |$)|^\s*(codex\/create-proposal-for-client-management-tools-[a-z0-9]+|main)\s*$/m;
   for (const [path, content] of files) assert.doesNotMatch(content, debris, path);
