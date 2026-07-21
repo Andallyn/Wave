@@ -129,6 +129,8 @@ let currentAnalyticsRange = '30';
 let currentAnalyticsCampaign = 'All';
 let currentGoalFilter = 'All';
 let currentBriefingFilter = 'All';
+let currentCalendarFilter = 'All';
+let currentCalendarView = 'Week';
 let briefingRefreshedAt = 'just now';
 let analyticsRefreshedAt = 'just now';
 const homeMarkup = document.querySelector('#pageContent').innerHTML;
@@ -246,6 +248,13 @@ function summaryCards(cards) {
 }
 
 const views = {
+  Calendar() {
+    const all = calendarItems(); const items = currentCalendarFilter === 'All' ? all : all.filter((item) => item.type === currentCalendarFilter); const days = ['Today', 'Tomorrow', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    const content = currentCalendarView === 'Week' ? `<section class="calendar-week">${days.map((day) => { const dayItems = items.filter((item) => item.day === day); return `<article class="calendar-day"><header><b>${day}</b><span>${dayItems.length}</span></header><div>${dayItems.map(calendarItemMarkup).join('') || '<small class="calendar-empty">No scheduled work</small>'}</div></article>`; }).join('')}</section>` : `<section class="module-card calendar-agenda">${items.map(calendarItemMarkup).join('') || emptyState('□', 'Nothing scheduled', 'Change the filter to see other operational dates.')}</section>`;
+    return `${pageHeader('Operations Calendar', 'Coordinate publishing, tasks, campaigns, and events from one schedule.', '<button class="primary-btn" data-page-link="Content Studio">＋ Schedule content</button>')}
+      ${summaryCards([{ icon: '✦', value: all.filter((item) => item.type === 'Content').length, label: 'Content items' }, { icon: '✓', value: all.filter((item) => item.type === 'Task').length, label: 'Task deadlines', color: 'blue' }, { icon: '◎', value: all.filter((item) => item.type === 'Campaign').length, label: 'Campaign milestones', color: 'purple' }, { icon: '□', value: all.filter((item) => item.type === 'Event').length, label: 'Events', color: 'amber' }])}
+      <section class="calendar-toolbar module-card"><div class="segmented">${['All', 'Content', 'Task', 'Campaign', 'Event'].map((filter) => `<button class="${currentCalendarFilter === filter ? 'active' : ''}" data-calendar-filter="${filter}">${filter}</button>`).join('')}</div><div class="segmented"><button class="${currentCalendarView === 'Week' ? 'active' : ''}" data-calendar-view="Week">Week</button><button class="${currentCalendarView === 'Agenda' ? 'active' : ''}" data-calendar-view="Agenda">Agenda</button></div></section>${content}`;
+  },
   Briefing() {
     const items = briefingItems().filter((item) => currentBriefingFilter === 'All' || item.type === currentBriefingFilter); const allItems = briefingItems(); const urgent = allItems.filter((item) => item.priority === 'High').length;
     return `${pageHeader('Daily Briefing', 'A decision-ready summary of what changed, what needs attention, and where to act next.', '<button class="primary-btn" id="refreshBriefing">✦ Generate fresh brief</button>')}
@@ -360,6 +369,28 @@ const views = {
 
 
 
+function calendarItems() {
+  const items = []; const days = ['Today', 'Tomorrow', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']; let position = 0;
+  state.content.filter((item) => item.date !== 'Unscheduled').forEach((item) => items.push({ id: `Content:${item.id}`, type: 'Content', title: item.title, date: item.date, meta: `${item.channel} · ${item.status}`, page: 'Content Studio', day: days[position++ % days.length] }));
+  state.tasks.slice(0, 6).forEach((item) => items.push({ id: `Task:${item.id}`, type: 'Task', title: item.title, date: item.meta.split('·').pop().trim(), meta: item.type + ' · ' + item.owner, page: 'Tasks', day: days[position++ % days.length] }));
+  state.campaigns.forEach((item) => items.push({ id: `Campaign:${item.id}`, type: 'Campaign', title: item.name, date: item.deadline, meta: `${item.status} · ${item.owner}`, page: 'Campaigns', day: days[position++ % days.length] }));
+  state.events.forEach((item) => items.push({ id: `Event:${item.id}`, type: 'Event', title: item.name, date: item.date, meta: `${item.location} · ${item.match}% match`, page: 'Events', day: days[position++ % days.length] }));
+  return items;
+}
+
+function calendarItemMarkup(item) {
+  return `<div class="calendar-entry ${item.type.toLowerCase()}"><span class="calendar-type">${item.type.slice(0, 1)}</span><div><b>${escapeHtml(item.title)}</b><small>${escapeHtml(item.date)} · ${escapeHtml(item.meta)}</small></div><aside><button class="text-btn" data-open-calendar="${item.page}">Open</button><button class="text-btn" data-reschedule-calendar="${item.id}">Reschedule</button></aside></div>`;
+}
+
+function rescheduleCalendarItem(reference) {
+  const [type, rawId] = reference.split(':'); const id = Number(rawId); let item; let previous; const next = window.prompt('Enter the new schedule or deadline:'); if (!next?.trim()) return;
+  if (type === 'Content') { item = state.content.find((entry) => entry.id === id); if (item) { previous = item.date; item.date = next.trim(); } }
+  if (type === 'Campaign') { item = state.campaigns.find((entry) => entry.id === id); if (item) { previous = item.deadline; item.deadline = next.trim(); } }
+  if (type === 'Event') { item = state.events.find((entry) => entry.id === id); if (item) { previous = item.date; item.date = next.trim(); } }
+  if (type === 'Task') { item = state.tasks.find((entry) => entry.id === id); if (item) { previous = item.meta; item.meta = item.meta.replace(/Due .*/i, `Due ${next.trim()}`); } }
+  if (!item) return; recordActivity('□', `Rescheduled ${type.toLowerCase()}: ${item.title || item.name}`, { actor: 'Alex Morgan', module: 'Calendar', category: 'Decision', evidence: `${previous} → ${next.trim()}` }); persist(); navigate('Calendar'); toast('Schedule updated across the workspace.');
+}
+
 function briefingItems() {
   const items = [];
   state.approvals.filter((approval) => approval.status === 'Pending').slice(0, 2).forEach((approval) => items.push({ id: `approval-${approval.id}`, type: 'Decision', priority: approval.due === 'Today' ? 'High' : 'Medium', source: approval.owner, title: approval.title, why: `${approval.risk} · ${approval.evidence}`, action: 'Review the evidence and record a decision.', page: 'Approvals' }));
@@ -421,6 +452,10 @@ function applyApprovalDecision(id, status) {
 }
 
 function attachModuleEvents(page) {
+  $('[data-calendar-filter]').forEach((button) => button.addEventListener('click', () => { currentCalendarFilter = button.dataset.calendarFilter; navigate('Calendar'); }));
+  $('[data-calendar-view]').forEach((button) => button.addEventListener('click', () => { currentCalendarView = button.dataset.calendarView; navigate('Calendar'); }));
+  $('[data-open-calendar]').forEach((button) => button.addEventListener('click', () => navigate(button.dataset.openCalendar)));
+  $('[data-reschedule-calendar]').forEach((button) => button.addEventListener('click', () => rescheduleCalendarItem(button.dataset.rescheduleCalendar)));
   $$('[data-briefing-filter]').forEach((button) => button.addEventListener('click', () => { currentBriefingFilter = button.dataset.briefingFilter; navigate('Briefing'); }));
   $$('[data-open-briefing]').forEach((button) => button.addEventListener('click', () => navigate(button.dataset.openBriefing)));
   $$('[data-dismiss-briefing]').forEach((button) => button.addEventListener('click', () => { state.briefingDismissed.push(button.dataset.dismissBriefing); recordActivity('✓', 'Handled Daily Briefing item', { actor: 'Alex Morgan', module: 'Briefing', category: 'Decision', evidence: button.dataset.dismissBriefing }); navigate('Briefing'); toast('Item marked as handled.'); }));
