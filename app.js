@@ -49,6 +49,10 @@ const defaults = {
     { id: 602, vendor: 'Commons Guild', amount: 1800, due: 'Jul 24', status: 'Scheduled', deliverable: 'Community workshop series' },
     { id: 603, vendor: 'Maya Chen', amount: 2400, due: 'Jul 28', status: 'Draft', deliverable: 'July content production' }
   ],
+  campaigns: [
+    { id: 801, name: 'Mainnet launch', goal: 'Grow qualified builder awareness before launch', owner: 'Alex Morgan', status: 'Active', deadline: 'Aug 30', budget: 24000, spent: 14600, taskIds: [1, 3], contentCampaigns: ['Mainnet launch'], leadIds: [301], eventIds: [401] },
+    { id: 802, name: 'Developer education', goal: 'Increase SDK activation through practical education', owner: 'Maya Chen', status: 'Active', deadline: 'Sep 15', budget: 16000, spent: 7200, taskIds: [4, 5], contentCampaigns: ['Education', 'Ecosystem'], leadIds: [304], eventIds: [403] }
+  ],
   approvals: [
     { id: 701, type: 'Content', title: 'Road to Mainnet campaign thread', owner: 'Content Strategist', risk: 'Brand review', evidence: 'Mainnet brief · 94% voice match', due: 'Today', status: 'Pending', targetId: 101 },
     { id: 702, type: 'Community', title: 'Response to wallet connection reports', owner: 'Community Guardian', risk: 'Public incident response', evidence: '28 Discord messages · negative sentiment', due: 'Today', status: 'Pending', targetId: 201 },
@@ -68,7 +72,7 @@ function readStoredState() {
   try {
     const saved = JSON.parse(window.localStorage.getItem(STATE_KEY) || 'null');
     if (!saved || typeof saved !== 'object') return null;
-    const arrays = ['tasks', 'agents', 'activities', 'content', 'signals', 'leads', 'events', 'customers', 'invoices', 'approvals'];
+    const arrays = ['tasks', 'agents', 'activities', 'content', 'signals', 'leads', 'events', 'customers', 'invoices', 'approvals', 'campaigns'];
     return arrays.every((key) => saved[key] === undefined || Array.isArray(saved[key])) ? saved : null;
   } catch (error) {
     console.warn('Wave could not read saved workspace data. Starting with demo data.', error);
@@ -86,6 +90,7 @@ let currentPage = 'Command Center';
 let currentContentView = 'Pipeline';
 let editingContentId = null;
 let currentApprovalFilter = 'Pending';
+let currentCampaignId = null;
 const homeMarkup = document.querySelector('#pageContent').innerHTML;
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => [...document.querySelectorAll(selector)];
@@ -191,6 +196,19 @@ function summaryCards(cards) {
 }
 
 const views = {
+  Campaigns() {
+    if (!currentCampaignId && state.campaigns.length) currentCampaignId = state.campaigns[0].id;
+    const campaign = state.campaigns.find((item) => item.id === currentCampaignId) || state.campaigns[0];
+    const metrics = campaign ? campaignMetrics(campaign) : null;
+    return `${pageHeader('Campaign Workspaces', 'Connect goals, execution, approvals, budget, and outcomes in one operating view.', '<button class="primary-btn" data-campaign-task>＋ Campaign task</button>')}
+      <section class="campaign-tabs">${state.campaigns.map((item) => { const itemMetrics = campaignMetrics(item); return `<button class="${item.id === campaign.id ? 'active' : ''}" data-select-campaign="${item.id}"><span><b>${escapeHtml(item.name)}</b><small>${escapeHtml(item.goal)}</small></span><strong>${itemMetrics.progress}%</strong></button>`; }).join('')}</section>
+      ${metrics ? `${summaryCards([{ icon: '↗', value: metrics.progress + '%', label: 'Campaign progress' }, { icon: '✓', value: metrics.outcomes, label: 'Approved outcomes', color: 'blue' }, { icon: '◷', value: metrics.openTasks.length, label: 'Open tasks', color: 'amber' }, { icon: '$', value: money(campaign.spent), label: 'Spend to date', color: 'purple', note: metrics.budgetPercent + '% of budget' }])}
+      <section class="campaign-hero module-card"><div><p class="eyebrow">${escapeHtml(campaign.status)} · DUE ${escapeHtml(campaign.deadline)}</p><h2>${escapeHtml(campaign.name)}</h2><p>${escapeHtml(campaign.goal)}</p><small>Owner: ${escapeHtml(campaign.owner)}</small></div><div class="campaign-progress"><strong>${metrics.progress}%</strong><span>toward goal</span><div><i style="width:${metrics.progress}%"></i></div></div></section>
+      <section class="campaign-grid">
+        <article class="module-card campaign-stream"><div class="module-card-head"><div><h3>Execution</h3><p>Work and content connected to this campaign.</p></div><button class="text-btn" data-campaign-page="Tasks">Open tasks →</button></div><div class="campaign-section"><h4>Tasks</h4>${metrics.openTasks.map((task) => `<div class="campaign-item"><span class="task-icon">${escapeHtml(task.icon)}</span><p><b>${escapeHtml(task.title)}</b><small>${escapeHtml(task.meta)}</small></p><em class="status-pill ${task.type.toLowerCase()}">${escapeHtml(task.type)}</em></div>`).join('') || emptyState('✓', 'Tasks cleared', 'All linked campaign work is complete.')}</div><div class="campaign-section"><h4>Content</h4>${metrics.content.map((item) => `<div class="campaign-item"><span class="channel-icon">${item.channel.startsWith('X') ? '𝕏' : 'in'}</span><p><b>${escapeHtml(item.title)}</b><small>${escapeHtml(item.channel)} · ${escapeHtml(item.date)}</small></p><em class="status-pill ${item.status.toLowerCase()}">${escapeHtml(item.status)}</em></div>`).join('') || emptyState('✦', 'No content linked', 'Create a campaign asset in Content Studio.')}</div></article>
+        <aside class="campaign-side"><article class="module-card"><div class="module-card-head"><div><h3>Budget</h3><p>Approved campaign allocation.</p></div></div><div class="campaign-budget"><span><b>${money(campaign.spent)}</b><small>of ${money(campaign.budget)}</small></span><strong>${metrics.budgetPercent}%</strong><div><i style="width:${Math.min(metrics.budgetPercent, 100)}%"></i></div></div></article><article class="module-card"><div class="module-card-head"><div><h3>Opportunities & events</h3><p>External campaign leverage.</p></div></div><div class="campaign-section">${metrics.leads.map((lead) => `<div class="campaign-item"><span class="company-avatar">${escapeHtml(lead.company[0])}</span><p><b>${escapeHtml(lead.company)}</b><small>${lead.fit}% fit · ${escapeHtml(lead.stage)}</small></p></div>`).join('')}${metrics.events.map((event) => `<div class="campaign-item"><span class="module-symbol blue">□</span><p><b>${escapeHtml(event.name)}</b><small>${escapeHtml(event.date)} · ${event.saved ? 'Saved' : 'Not saved'}</small></p></div>`).join('')}</div></article><button class="secondary-btn full" data-campaign-page="Approvals">Review campaign approvals →</button></aside>
+      </section>` : emptyState('◎', 'No campaigns yet', 'Create a campaign workspace to connect your operating data.')}`;
+  },
   Approvals() {
     const visible = currentApprovalFilter === 'All' ? state.approvals : state.approvals.filter((item) => item.status === currentApprovalFilter);
     const pending = state.approvals.filter((item) => item.status === 'Pending').length;
@@ -252,6 +270,23 @@ const views = {
 };
 
 
+
+function campaignMetrics(campaign) {
+  const openTasks = state.tasks.filter((task) => campaign.taskIds.includes(task.id));
+  const completedTasks = Math.max(0, campaign.taskIds.length - openTasks.length);
+  const content = state.content.filter((item) => campaign.contentCampaigns.includes(item.campaign));
+  const scheduledContent = content.filter((item) => item.status === 'Scheduled');
+  const leads = state.leads.filter((lead) => campaign.leadIds.includes(lead.id));
+  const progressedLeads = leads.filter((lead) => ['Contacted', 'Meeting'].includes(lead.stage));
+  const events = state.events.filter((event) => campaign.eventIds.includes(event.id));
+  const savedEvents = events.filter((event) => event.saved);
+  const taskScore = campaign.taskIds.length ? (completedTasks / campaign.taskIds.length) * 30 : 30;
+  const contentScore = content.length ? (scheduledContent.length / content.length) * 30 : 30;
+  const leadScore = leads.length ? (progressedLeads.length / leads.length) * 20 : 20;
+  const eventScore = events.length ? (savedEvents.length / events.length) * 20 : 20;
+  return { openTasks, completedTasks, content, scheduledContent, leads, events, progress: Math.round(taskScore + contentScore + leadScore + eventScore), outcomes: completedTasks + scheduledContent.length + progressedLeads.length + savedEvents.length, budgetPercent: Math.round((campaign.spent / campaign.budget) * 100) };
+}
+
 function updateApprovalBadge() {
   const badge = $('#approvalBadge');
   if (badge) badge.textContent = state.approvals.filter((item) => item.status === 'Pending').length;
@@ -275,6 +310,13 @@ function applyApprovalDecision(id, status) {
 }
 
 function attachModuleEvents(page) {
+  $$('[data-select-campaign]').forEach((button) => button.addEventListener('click', () => { currentCampaignId = Number(button.dataset.selectCampaign); navigate('Campaigns'); }));
+  $$('[data-campaign-page]').forEach((button) => button.addEventListener('click', () => navigate(button.dataset.campaignPage)));
+  $$('[data-campaign-task]').forEach((button) => button.addEventListener('click', () => {
+    const campaign = state.campaigns.find((item) => item.id === currentCampaignId); if (!campaign) return;
+    const id = Date.now(); campaign.taskIds.push(id); state.tasks.unshift({ id, title: `Campaign follow-up: ${campaign.name}`, meta: `${campaign.owner} · Due ${campaign.deadline}`, type: 'Review', icon: '◎', owner: campaign.owner.split(' ').map((word) => word[0]).join('').slice(0, 2) });
+    recordActivity('◎', `Created campaign task for ${campaign.name}`); navigate('Campaigns'); toast('Campaign task added to the work queue.');
+  }));
   $$('[data-approval-filter]').forEach((button) => button.addEventListener('click', () => { currentApprovalFilter = button.dataset.approvalFilter; navigate('Approvals'); }));
   $$('[data-approve-action]').forEach((button) => button.addEventListener('click', () => applyApprovalDecision(Number(button.dataset.approveAction), 'Approved')));
   $$('[data-reject-approval]').forEach((button) => button.addEventListener('click', () => applyApprovalDecision(Number(button.dataset.rejectApproval), 'Rejected')));

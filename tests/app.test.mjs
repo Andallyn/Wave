@@ -85,6 +85,17 @@ test('provides an evidence-based unified Approval Inbox', () => {
   assert.match(app, /invoice\.status = 'Awaiting second approval'/);
 });
 
+test('provides connected Campaign Workspaces', () => {
+  assert.match(html, /data-page="Campaigns"/);
+  assert.match(app, /campaigns: \[/);
+  assert.match(app, /function campaignMetrics/);
+  ['taskIds', 'contentCampaigns', 'leadIds', 'eventIds', 'budget', 'spent'].forEach((field) => assert.match(app, new RegExp(field)));
+  assert.match(app, /data-select-campaign/);
+  assert.match(app, /data-campaign-task/);
+  assert.match(app, /data-campaign-page="Approvals"/);
+  assert.match(app, /campaign\.taskIds\.push/);
+});
+
 test('contains no merge markers or leaked conflict branch labels', () => {
   const debris = /^(<<<<<<<|=======|>>>>>>>)( |$)|^\s*(codex\/create-proposal-for-client-management-tools-[a-z0-9]+|main)\s*$/m;
   for (const [path, content] of files) assert.doesNotMatch(content, debris, path);
