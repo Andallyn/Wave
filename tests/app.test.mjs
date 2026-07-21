@@ -135,6 +135,18 @@ test('provides governed Agent Operations and connector health', () => {
   assert.match(app, /connector healthy/);
 });
 
+
+test('provides interactive exportable Live Analytics', () => {
+  assert.match(app, /pageHeader\('Live Analytics'/);
+  assert.match(app, /function analyticsSnapshot/);
+  assert.match(app, /data-analytics-range/);
+  assert.match(app, /id="analyticsCampaign"/);
+  assert.match(app, /id="refreshAnalytics"/);
+  assert.match(app, /wave-live-analytics\.csv/);
+  ['funnel', 'channels', 'contributions', 'approvalRate', 'costPerOutcome'].forEach((field) => assert.match(app, new RegExp(field)));
+  assert.match(app, /Refreshed live analytics/);
+});
+
 test('contains no merge markers or leaked conflict branch labels', () => {
   const debris = /^(<<<<<<<|=======|>>>>>>>)( |$)|^\s*(codex\/create-proposal-for-client-management-tools-[a-z0-9]+|main)\s*$/m;
   for (const [path, content] of files) assert.doesNotMatch(content, debris, path);
