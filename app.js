@@ -88,6 +88,12 @@ const defaults = {
     { id: 903, action: 'Approved Mainnet campaign thread', actor: 'Alex Morgan', module: 'Approvals', category: 'Decision', evidence: '94% voice match · Brand review', time: '46m ago' },
     { id: 904, action: 'Matched invoice to deliverable', actor: 'Finance Operations', module: 'Finance', category: 'Operations', evidence: 'Northstar Design · Mainnet launch creative', time: '1h ago' }
   ],
+  automations: [
+    { id: 1201, name: 'Escalate urgent community signals', trigger: 'Urgent signal detected', action: 'Create approval and briefing item', status: 'Active', runs: 14, lastRun: '28m ago', requiresApproval: true, module: 'Community' },
+    { id: 1202, name: 'Prepare weekly campaign report', trigger: 'Every Friday at 16:00', action: 'Refresh analytics and export summary', status: 'Active', runs: 7, lastRun: '4d ago', requiresApproval: false, module: 'Analytics' },
+    { id: 1203, name: 'Follow up qualified partnership leads', trigger: 'Lead fit reaches 85%', action: 'Create outreach approval', status: 'Paused', runs: 3, lastRun: '12d ago', requiresApproval: true, module: 'Partnerships' },
+    { id: 1204, name: 'Flag goals falling behind', trigger: 'Goal progress drops below 55%', action: 'Add risk to Daily Briefing', status: 'Active', runs: 5, lastRun: '2d ago', requiresApproval: false, module: 'Goals' }
+  ],
   briefingDismissed: [],
   briefingSnoozed: [],
   completed: 18
@@ -103,7 +109,7 @@ function readStoredState() {
   try {
     const saved = JSON.parse(window.localStorage.getItem(STATE_KEY) || 'null');
     if (!saved || typeof saved !== 'object') return null;
-    const arrays = ['tasks', 'agents', 'activities', 'content', 'signals', 'leads', 'events', 'customers', 'invoices', 'approvals', 'campaigns', 'audit', 'members', 'connectors', 'goals', 'briefingDismissed', 'briefingSnoozed'];
+    const arrays = ['tasks', 'agents', 'activities', 'content', 'signals', 'leads', 'events', 'customers', 'invoices', 'approvals', 'campaigns', 'audit', 'members', 'connectors', 'goals', 'briefingDismissed', 'briefingSnoozed', 'automations'];
     return arrays.every((key) => saved[key] === undefined || Array.isArray(saved[key])) ? saved : null;
   } catch (error) {
     console.warn('Wave could not read saved workspace data. Starting with demo data.', error);
@@ -131,6 +137,7 @@ let currentGoalFilter = 'All';
 let currentBriefingFilter = 'All';
 let currentCalendarFilter = 'All';
 let currentCalendarView = 'Week';
+let currentAutomationFilter = 'All';
 let briefingRefreshedAt = 'just now';
 let analyticsRefreshedAt = 'just now';
 const homeMarkup = document.querySelector('#pageContent').innerHTML;
@@ -248,10 +255,17 @@ function summaryCards(cards) {
 }
 
 const views = {
+  Automations() {
+    const visible = currentAutomationFilter === 'All' ? state.automations : state.automations.filter((rule) => rule.status === currentAutomationFilter); const active = state.automations.filter((rule) => rule.status === 'Active');
+    return `${pageHeader('Automation Rules', 'Turn repeatable operating patterns into governed Wave workflows.', '<button class="primary-btn" id="createAutomation">＋ New rule</button>')}
+      ${summaryCards([{ icon: '↻', value: active.length, label: 'Active rules' }, { icon: '✓', value: state.automations.reduce((sum, rule) => sum + rule.runs, 0), label: 'Successful runs', color: 'blue' }, { icon: '⌾', value: state.automations.filter((rule) => rule.requiresApproval).length, label: 'Human-gated rules', color: 'purple' }, { icon: '◷', value: state.automations.filter((rule) => rule.status === 'Paused').length, label: 'Paused rules', color: 'amber' }])}
+      <section class="automation-toolbar module-card"><div class="segmented">${['All', 'Active', 'Paused'].map((filter) => `<button class="${currentAutomationFilter === filter ? 'active' : ''}" data-automation-filter="${filter}">${filter}</button>`).join('')}</div><span class="safe-chip">Approvals remain enforced</span></section>
+      <section class="automation-list module-card"><div class="automation-head"><span>Rule</span><span>Trigger → Action</span><span>Governance</span><span>Runs</span><span>Controls</span></div>${visible.map((rule) => `<article class="automation-row"><span><span class="automation-icon">${rule.module.slice(0, 1)}</span><span><b>${escapeHtml(rule.name)}</b><small>${escapeHtml(rule.module)} · Last run ${escapeHtml(rule.lastRun)}</small></span></span><span><b>${escapeHtml(rule.trigger)}</b><small>→ ${escapeHtml(rule.action)}</small></span><span><em class="status-pill ${rule.requiresApproval ? 'needs' : 'scheduled'}">${rule.requiresApproval ? 'Approval required' : 'Within boundary'}</em></span><strong>${rule.runs}</strong><span class="automation-actions"><button class="secondary-btn compact" data-run-automation="${rule.id}" ${rule.status === 'Active' ? '' : 'disabled'}>Run now</button><button class="text-btn" data-toggle-automation="${rule.id}">${rule.status === 'Active' ? 'Pause' : 'Activate'}</button></span></article>`).join('') || emptyState('↻', 'No automation rules', 'Create a governed rule or change the current filter.')}</section>`;
+  },
   Calendar() {
     const all = calendarItems(); const items = currentCalendarFilter === 'All' ? all : all.filter((item) => item.type === currentCalendarFilter); const days = ['Today', 'Tomorrow', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
     const content = currentCalendarView === 'Week' ? `<section class="calendar-week">${days.map((day) => { const dayItems = items.filter((item) => item.day === day); return `<article class="calendar-day"><header><b>${day}</b><span>${dayItems.length}</span></header><div>${dayItems.map(calendarItemMarkup).join('') || '<small class="calendar-empty">No scheduled work</small>'}</div></article>`; }).join('')}</section>` : `<section class="module-card calendar-agenda">${items.map(calendarItemMarkup).join('') || emptyState('□', 'Nothing scheduled', 'Change the filter to see other operational dates.')}</section>`;
-    return `${pageHeader('Operations Calendar', 'Coordinate publishing, tasks, campaigns, and events from one schedule.', '<button class="primary-btn" data-page-link="Content Studio">＋ Schedule content</button>')}
+    return `${pageHeader('Operations Calendar', 'Coordinate publishing, tasks, campaigns, and events from one schedule.', '<button class="primary-btn" data-schedule-content>＋ Schedule content</button>')}
       ${summaryCards([{ icon: '✦', value: all.filter((item) => item.type === 'Content').length, label: 'Content items' }, { icon: '✓', value: all.filter((item) => item.type === 'Task').length, label: 'Task deadlines', color: 'blue' }, { icon: '◎', value: all.filter((item) => item.type === 'Campaign').length, label: 'Campaign milestones', color: 'purple' }, { icon: '□', value: all.filter((item) => item.type === 'Event').length, label: 'Events', color: 'amber' }])}
       <section class="calendar-toolbar module-card"><div class="segmented">${['All', 'Content', 'Task', 'Campaign', 'Event'].map((filter) => `<button class="${currentCalendarFilter === filter ? 'active' : ''}" data-calendar-filter="${filter}">${filter}</button>`).join('')}</div><div class="segmented"><button class="${currentCalendarView === 'Week' ? 'active' : ''}" data-calendar-view="Week">Week</button><button class="${currentCalendarView === 'Agenda' ? 'active' : ''}" data-calendar-view="Agenda">Agenda</button></div></section>${content}`;
   },
@@ -452,6 +466,11 @@ function applyApprovalDecision(id, status) {
 }
 
 function attachModuleEvents(page) {
+  $('#scheduleContent, [data-schedule-content]')?.addEventListener('click', () => { editingContentId = null; $('#contentForm').reset(); $('#contentStatus').value = 'Scheduled'; const dialog = $('#contentDialog'); if (typeof dialog.showModal === 'function') dialog.showModal(); else dialog.setAttribute('open', ''); });
+  $('[data-automation-filter]').forEach((button) => button.addEventListener('click', () => { currentAutomationFilter = button.dataset.automationFilter; navigate('Automations'); }));
+  $('[data-toggle-automation]').forEach((button) => button.addEventListener('click', () => { const rule = state.automations.find((item) => item.id === Number(button.dataset.toggleAutomation)); if (!rule) return; rule.status = rule.status === 'Active' ? 'Paused' : 'Active'; recordActivity('↻', `${rule.status}: ${rule.name}`, { actor: 'Alex Morgan', module: 'Automations', category: 'Decision', evidence: `${rule.trigger} · ${rule.requiresApproval ? 'Human approval retained' : 'Within agent boundary'}` }); navigate('Automations'); toast(`Automation ${rule.status.toLowerCase()}.`); }));
+  $('[data-run-automation]').forEach((button) => button.addEventListener('click', () => { const rule = state.automations.find((item) => item.id === Number(button.dataset.runAutomation)); if (!rule || rule.status !== 'Active') return; rule.runs += 1; rule.lastRun = 'just now'; recordActivity('↻', `Ran automation: ${rule.name}`, { actor: 'Alex Morgan', module: 'Automations', category: 'Operations', evidence: `${rule.trigger} → ${rule.action}` }); navigate('Automations'); toast(rule.requiresApproval ? 'Automation ran and routed its action for approval.' : 'Automation completed within its operating boundary.'); }));
+  $('#createAutomation')?.addEventListener('click', () => { const name = window.prompt('Name this automation rule:'); if (!name?.trim()) return; const trigger = window.prompt('When should it run?', 'Every Monday at 09:00'); if (!trigger?.trim()) return; const action = window.prompt('What should Wave do?', 'Create a task and add it to Daily Briefing'); if (!action?.trim()) return; state.automations.unshift({ id: Date.now(), name: name.trim(), trigger: trigger.trim(), action: action.trim(), status: 'Active', runs: 0, lastRun: 'Never', requiresApproval: true, module: 'Workspace' }); recordActivity('↻', `Created automation: ${name.trim()}`, { actor: 'Alex Morgan', module: 'Automations', category: 'Decision', evidence: `${trigger.trim()} → ${action.trim()} · approval required` }); navigate('Automations'); toast('Governed automation rule created.'); });
   $$('[data-calendar-filter]').forEach((button) => button.addEventListener('click', () => { currentCalendarFilter = button.dataset.calendarFilter; navigate('Calendar'); }));
   $$('[data-calendar-view]').forEach((button) => button.addEventListener('click', () => { currentCalendarView = button.dataset.calendarView; navigate('Calendar'); }));
   $$('[data-open-calendar]').forEach((button) => button.addEventListener('click', () => navigate(button.dataset.openCalendar)));
@@ -643,10 +662,10 @@ $$('[data-close-preview]').forEach((button) => button.addEventListener('click', 
 $('#contentForm').addEventListener('submit', (event) => {
   event.preventDefault();
   if (!event.currentTarget.reportValidity()) return;
-  const item = state.content.find((content) => content.id === editingContentId);
-  if (!item) return;
+  let item = state.content.find((content) => content.id === editingContentId); const creating = !item;
+  if (!item) { item = { id: Date.now(), campaign: 'Unassigned' }; state.content.unshift(item); }
   item.title = $('#contentTitle').value.trim(); item.copy = $('#contentCopy').value.trim(); item.channel = $('#contentChannel').value; item.status = $('#contentStatus').value; item.date = $('#contentDate').value.trim() || 'Unscheduled';
-  recordActivity('✦', `Updated content: ${item.title}`); closeContentDialog(); if (currentPage === 'Content Studio') navigate('Content Studio'); toast('Content changes saved.');
+  recordActivity('✦', `${creating ? 'Scheduled new content' : 'Updated content'}: ${item.title}`, { actor: 'Alex Morgan', module: 'Content Studio', category: 'Content', evidence: `${item.channel} · ${item.status} · ${item.date}` }); closeContentDialog(); if (currentPage === 'Content Studio' || currentPage === 'Calendar') navigate(currentPage); toast(creating ? 'Content scheduled successfully.' : 'Content changes saved.');
 });
 
 const commandDialog = $('#commandDialog');
