@@ -13,6 +13,10 @@ const defaults = {
     { name: 'Partnership Scout', status: 'Scored 8 new leads', icon: '◇', color: 'blue', active: true, autonomy: 'Guided', budgetUsed: 31, budgetLimit: 60, runs: 27, lastRun: '38m ago' },
     { name: 'Market Listener', status: 'Watching 14 narratives', icon: '↗', color: 'mint', active: true, autonomy: 'Observe only', budgetUsed: 52, budgetLimit: 70, runs: 84, lastRun: '8m ago' }
   ],
+  goals: [
+    { id: 1101, title: 'Grow qualified builder awareness', owner: 'Alex Morgan', status: 'On track', deadline: 'Aug 30', campaignId: 801, keyResults: [{ id: 1, title: 'Reach 250K qualified impressions', current: 184, target: 250, unit: 'K' }, { id: 2, title: 'Generate 120 builder sign-ups', current: 83, target: 120, unit: '' }, { id: 3, title: 'Secure 8 ecosystem partners', current: 5, target: 8, unit: '' }] },
+    { id: 1102, title: 'Increase developer activation', owner: 'Maya Chen', status: 'At risk', deadline: 'Sep 15', campaignId: 802, keyResults: [{ id: 1, title: 'Achieve 45% SDK activation', current: 31, target: 45, unit: '%' }, { id: 2, title: 'Publish 12 education assets', current: 7, target: 12, unit: '' }, { id: 3, title: 'Resolve top 10 onboarding gaps', current: 6, target: 10, unit: '' }] }
+  ],
   connectors: [
     { id: 'discord', name: 'Discord', scope: 'Community signals', status: 'Healthy', lastSync: '4m ago', records: 284 },
     { id: 'telegram', name: 'Telegram', scope: 'Community signals', status: 'Healthy', lastSync: '7m ago', records: 193 },
@@ -97,7 +101,7 @@ function readStoredState() {
   try {
     const saved = JSON.parse(window.localStorage.getItem(STATE_KEY) || 'null');
     if (!saved || typeof saved !== 'object') return null;
-    const arrays = ['tasks', 'agents', 'activities', 'content', 'signals', 'leads', 'events', 'customers', 'invoices', 'approvals', 'campaigns', 'audit', 'members', 'connectors'];
+    const arrays = ['tasks', 'agents', 'activities', 'content', 'signals', 'leads', 'events', 'customers', 'invoices', 'approvals', 'campaigns', 'audit', 'members', 'connectors', 'goals'];
     return arrays.every((key) => saved[key] === undefined || Array.isArray(saved[key])) ? saved : null;
   } catch (error) {
     console.warn('Wave could not read saved workspace data. Starting with demo data.', error);
@@ -121,6 +125,7 @@ let currentAuditQuery = '';
 let currentSettingsTab = 'Agents';
 let currentAnalyticsRange = '30';
 let currentAnalyticsCampaign = 'All';
+let currentGoalFilter = 'All';
 let analyticsRefreshedAt = 'just now';
 const homeMarkup = document.querySelector('#pageContent').innerHTML;
 const $ = (selector) => document.querySelector(selector);
@@ -237,6 +242,13 @@ function summaryCards(cards) {
 }
 
 const views = {
+  Goals() {
+    const visible = currentGoalFilter === 'All' ? state.goals : state.goals.filter((goal) => goal.status === currentGoalFilter); const progresses = state.goals.map(goalProgress); const overall = progresses.length ? Math.round(progresses.reduce((sum, value) => sum + value, 0) / progresses.length) : 0; const totalKrs = state.goals.reduce((sum, goal) => sum + goal.keyResults.length, 0); const achieved = state.goals.reduce((sum, goal) => sum + goal.keyResults.filter((kr) => kr.current >= kr.target).length, 0);
+    return `${pageHeader('Goals & Outcomes', 'Turn strategy into measurable results connected to campaigns and execution.', '<button class="primary-btn" id="createGoal">＋ New goal</button>')}
+      ${summaryCards([{ icon: '◎', value: state.goals.length, label: 'Active goals' }, { icon: '↗', value: overall + '%', label: 'Overall progress', color: 'blue' }, { icon: '✓', value: achieved + ' / ' + totalKrs, label: 'Key results achieved', color: 'purple' }, { icon: '!', value: state.goals.filter((goal) => goal.status === 'At risk').length, label: 'Goals at risk', color: 'amber' }])}
+      <section class="goals-toolbar module-card"><div class="segmented">${['All', 'On track', 'At risk', 'Complete'].map((filter) => `<button class="${currentGoalFilter === filter ? 'active' : ''}" data-goal-filter="${filter}">${filter}</button>`).join('')}</div><small>Progress is calculated from linked key results.</small></section>
+      <section class="goals-workspace">${visible.map((goal) => { const progress = goalProgress(goal); const campaign = state.campaigns.find((item) => item.id === goal.campaignId); return `<article class="module-card goal-card"><header><div><span class="status-pill ${goal.status === 'On track' ? 'scheduled' : goal.status === 'At risk' ? 'needs' : 'approved'}">${escapeHtml(goal.status)}</span><h3>${escapeHtml(goal.title)}</h3><p>Owner: ${escapeHtml(goal.owner)} · Due ${escapeHtml(goal.deadline)}</p></div><strong>${progress}%</strong></header><div class="goal-progress"><i style="width:${progress}%"></i></div><div class="key-results">${goal.keyResults.map((kr) => { const krProgress = Math.min(100, Math.round((kr.current / kr.target) * 100)); return `<div class="key-result"><span><b>${escapeHtml(kr.title)}</b><small>${kr.current}${escapeHtml(kr.unit)} of ${kr.target}${escapeHtml(kr.unit)} · ${krProgress}%</small></span><div><i style="width:${krProgress}%"></i></div><button class="secondary-btn compact" data-update-kr="${goal.id}:${kr.id}">Update</button></div>`; }).join('')}</div><footer><span>Linked campaign: <b>${campaign ? escapeHtml(campaign.name) : 'None'}</b></span>${campaign ? `<button class="text-btn" data-open-goal-campaign="${campaign.id}">Open campaign →</button>` : ''}</footer></article>`; }).join('') || emptyState('◎', 'No goals match', 'Choose another status or create a new company goal.')}</section>`;
+  },
   'Agent Operations'() {
     const totalUsed = state.agents.reduce((sum, agent) => sum + agent.budgetUsed, 0); const totalLimit = state.agents.reduce((sum, agent) => sum + agent.budgetLimit, 0); const healthy = state.connectors.filter((item) => item.status === 'Healthy').length;
     return `${pageHeader('Agent Operations', 'Control autonomy, workload budgets, agent runs, and connected data health.')}
@@ -336,6 +348,11 @@ const views = {
 
 
 
+function goalProgress(goal) {
+  if (!goal.keyResults.length) return 0;
+  return Math.round(goal.keyResults.reduce((sum, kr) => sum + Math.min(1, kr.current / kr.target), 0) / goal.keyResults.length * 100);
+}
+
 function analyticsSnapshot() {
   const range = Number(currentAnalyticsRange); const factor = range === 7 ? 0.36 : range === 90 ? 2.15 : 1; const campaign = state.campaigns.find((item) => item.name === currentAnalyticsCampaign); const approvals = state.approvals.filter((item) => item.status === 'Approved' && (!campaign || campaign.taskIds.includes(item.targetId) || campaign.leadIds.includes(item.targetId) || campaign.contentCampaigns.some((name) => item.title.includes(name))));
   const baseOutcomes = Math.max(1, campaign ? campaignMetrics(campaign).outcomes : state.completed); const outcomes = Math.max(1, Math.round(baseOutcomes * factor)); const approvalBase = state.approvals.filter((item) => item.status !== 'Pending'); const approved = approvalBase.filter((item) => item.status === 'Approved').length; const approvalRate = approvalBase.length ? Math.round((approved / approvalBase.length) * 100) : 92; const recommendations = Math.max(outcomes + 4, Math.round(outcomes * 1.8)); const reviewed = Math.max(outcomes + 2, Math.round(recommendations * .78)); const shipped = Math.max(outcomes, Math.round(reviewed * .82));
@@ -382,6 +399,10 @@ function applyApprovalDecision(id, status) {
 }
 
 function attachModuleEvents(page) {
+  $('[data-goal-filter]').forEach((button) => button.addEventListener('click', () => { currentGoalFilter = button.dataset.goalFilter; navigate('Goals'); }));
+  $('[data-update-kr]').forEach((button) => button.addEventListener('click', () => { const [goalId, krId] = button.dataset.updateKr.split(':').map(Number); const goal = state.goals.find((item) => item.id === goalId); const kr = goal?.keyResults.find((item) => item.id === krId); if (!kr) return; const value = window.prompt(`Update “${kr.title}” (target: ${kr.target}${kr.unit})`, String(kr.current)); if (value === null) return; const next = Number(value); if (!Number.isFinite(next) || next < 0) { toast('Enter a valid positive number.'); return; } const previous = kr.current; kr.current = next; const progress = goalProgress(goal); goal.status = progress >= 100 ? 'Complete' : progress < 55 ? 'At risk' : 'On track'; recordActivity('◎', `Updated key result: ${kr.title}`, { actor: 'Alex Morgan', module: 'Goals', category: 'Decision', evidence: `${previous}${kr.unit} → ${kr.current}${kr.unit} · goal now ${progress}%` }); navigate('Goals'); toast('Key result and goal progress updated.'); }));
+  $('[data-open-goal-campaign]').forEach((button) => button.addEventListener('click', () => { currentCampaignId = Number(button.dataset.openGoalCampaign); navigate('Campaigns'); }));
+  $('#createGoal')?.addEventListener('click', () => { const title = window.prompt('What outcome should this goal achieve?'); if (!title?.trim()) return; const owner = window.prompt('Who owns this goal?', 'Alex Morgan'); if (owner === null) return; const deadline = window.prompt('What is the deadline?', 'Sep 30'); if (deadline === null) return; const id = Date.now(); state.goals.unshift({ id, title: title.trim(), owner: owner.trim() || 'Alex Morgan', status: 'On track', deadline: deadline.trim() || 'Not set', campaignId: null, keyResults: [{ id: 1, title: 'Define the first measurable key result', current: 0, target: 100, unit: '%' }] }); recordActivity('◎', `Created goal: ${title.trim()}`, { actor: 'Alex Morgan', module: 'Goals', category: 'Operations', evidence: `Owner: ${owner.trim() || 'Alex Morgan'} · deadline: ${deadline.trim() || 'Not set'}` }); navigate('Goals'); toast('Goal created with a starter key result.'); });
   $$('[data-analytics-range]').forEach((button) => button.addEventListener('click', () => { currentAnalyticsRange = button.dataset.analyticsRange; navigate('Analytics'); }));
   $('#analyticsCampaign')?.addEventListener('change', (event) => { currentAnalyticsCampaign = event.target.value; navigate('Analytics'); });
   $('#refreshAnalytics')?.addEventListener('click', () => { analyticsRefreshedAt = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }); recordActivity('↗', 'Refreshed live analytics', { actor: 'Alex Morgan', module: 'Analytics', category: 'Operations', evidence: `${currentAnalyticsRange}-day range · ${currentAnalyticsCampaign}` }); navigate('Analytics'); toast('Analytics refreshed from current workspace data.'); });
