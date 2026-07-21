@@ -193,6 +193,25 @@ test('provides a connected reschedulable Operations Calendar', () => {
   assert.match(app, /Schedule updated across the workspace/);
 });
 
+
+test('Calendar scheduling creates new persisted content', () => {
+  assert.match(app, /data-schedule-content/);
+  assert.match(app, /\$\('#scheduleContent, \[data-schedule-content\]'\)/);
+  assert.match(app, /const creating = !item/);
+  assert.match(app, /state\.content\.unshift\(item\)/);
+  assert.match(app, /Content scheduled successfully/);
+});
+
+test('provides governed persistent Automation Rules', () => {
+  assert.match(html, /data-page="Automations"/);
+  assert.match(app, /automations: \[/);
+  assert.match(app, /Automations\(\)/);
+  ['data-automation-filter', 'data-toggle-automation', 'data-run-automation'].forEach((control) => assert.match(app, new RegExp(control)));
+  assert.match(app, /id="createAutomation"/);
+  assert.match(app, /requiresApproval/);
+  assert.match(app, /Ran automation/);
+});
+
 test('contains no merge markers or leaked conflict branch labels', () => {
   const debris = /^(<<<<<<<|=======|>>>>>>>)( |$)|^\s*(codex\/create-proposal-for-client-management-tools-[a-z0-9]+|main)\s*$/m;
   for (const [path, content] of files) assert.doesNotMatch(content, debris, path);
