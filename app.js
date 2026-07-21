@@ -452,10 +452,10 @@ function applyApprovalDecision(id, status) {
 }
 
 function attachModuleEvents(page) {
-  $('[data-calendar-filter]').forEach((button) => button.addEventListener('click', () => { currentCalendarFilter = button.dataset.calendarFilter; navigate('Calendar'); }));
-  $('[data-calendar-view]').forEach((button) => button.addEventListener('click', () => { currentCalendarView = button.dataset.calendarView; navigate('Calendar'); }));
-  $('[data-open-calendar]').forEach((button) => button.addEventListener('click', () => navigate(button.dataset.openCalendar)));
-  $('[data-reschedule-calendar]').forEach((button) => button.addEventListener('click', () => rescheduleCalendarItem(button.dataset.rescheduleCalendar)));
+  $$('[data-calendar-filter]').forEach((button) => button.addEventListener('click', () => { currentCalendarFilter = button.dataset.calendarFilter; navigate('Calendar'); }));
+  $$('[data-calendar-view]').forEach((button) => button.addEventListener('click', () => { currentCalendarView = button.dataset.calendarView; navigate('Calendar'); }));
+  $$('[data-open-calendar]').forEach((button) => button.addEventListener('click', () => navigate(button.dataset.openCalendar)));
+  $$('[data-reschedule-calendar]').forEach((button) => button.addEventListener('click', () => rescheduleCalendarItem(button.dataset.rescheduleCalendar)));
   $$('[data-briefing-filter]').forEach((button) => button.addEventListener('click', () => { currentBriefingFilter = button.dataset.briefingFilter; navigate('Briefing'); }));
   $$('[data-open-briefing]').forEach((button) => button.addEventListener('click', () => navigate(button.dataset.openBriefing)));
   $$('[data-dismiss-briefing]').forEach((button) => button.addEventListener('click', () => { state.briefingDismissed.push(button.dataset.dismissBriefing); recordActivity('✓', 'Handled Daily Briefing item', { actor: 'Alex Morgan', module: 'Briefing', category: 'Decision', evidence: button.dataset.dismissBriefing }); navigate('Briefing'); toast('Item marked as handled.'); }));
