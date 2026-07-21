@@ -108,6 +108,20 @@ test('provides a structured searchable Audit Trail', () => {
   assert.match(app, /wave-audit-trail\.csv/);
 });
 
+
+test('provides persistent brand memory and workspace roles', () => {
+  assert.match(app, /brandProfile: \{/);
+  assert.match(app, /members: \[/);
+  ['voice', 'audience', 'promise', 'avoid', 'terms'].forEach((field) => assert.match(app, new RegExp(field)));
+  assert.match(app, /id="brandMemoryForm"/);
+  assert.match(app, /data-settings-tab/);
+  assert.match(app, /data-member-role/);
+  assert.match(app, /rolePermissions/);
+  assert.match(app, /Brand profile updated/);
+  assert.match(app, /Access changed from/);
+  assert.match(app, /state\.brandProfile\.voice/);
+});
+
 test('contains no merge markers or leaked conflict branch labels', () => {
   const debris = /^(<<<<<<<|=======|>>>>>>>)( |$)|^\s*(codex\/create-proposal-for-client-management-tools-[a-z0-9]+|main)\s*$/m;
   for (const [path, content] of files) assert.doesNotMatch(content, debris, path);
