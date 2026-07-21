@@ -59,6 +59,12 @@ const defaults = {
     { id: 703, type: 'Outreach', title: 'First contact with LayerZero Labs', owner: 'Partnership Scout', risk: 'First external outreach', evidence: '94% fit · 3 mutual partners', due: 'Today', status: 'Pending', targetId: 301 },
     { id: 704, type: 'Finance', title: 'Northstar Design invoice · $3,200', owner: 'Finance Operations', risk: 'Dual approval', evidence: 'Matched to Mainnet launch creative', due: 'Jul 19', status: 'Pending', targetId: 601 }
   ],
+  audit: [
+    { id: 901, action: 'Created campaign drafts', actor: 'Content Strategist', module: 'Content Studio', category: 'Content', evidence: '3 assets linked to Mainnet launch', time: '12m ago' },
+    { id: 902, action: 'Escalated wallet connection reports', actor: 'Community Guardian', module: 'Community', category: 'Operations', evidence: '28 Discord messages · negative sentiment', time: '28m ago' },
+    { id: 903, action: 'Approved Mainnet campaign thread', actor: 'Alex Morgan', module: 'Approvals', category: 'Decision', evidence: '94% voice match · Brand review', time: '46m ago' },
+    { id: 904, action: 'Matched invoice to deliverable', actor: 'Finance Operations', module: 'Finance', category: 'Operations', evidence: 'Northstar Design · Mainnet launch creative', time: '1h ago' }
+  ],
   completed: 18
 };
 
@@ -72,7 +78,7 @@ function readStoredState() {
   try {
     const saved = JSON.parse(window.localStorage.getItem(STATE_KEY) || 'null');
     if (!saved || typeof saved !== 'object') return null;
-    const arrays = ['tasks', 'agents', 'activities', 'content', 'signals', 'leads', 'events', 'customers', 'invoices', 'approvals', 'campaigns'];
+    const arrays = ['tasks', 'agents', 'activities', 'content', 'signals', 'leads', 'events', 'customers', 'invoices', 'approvals', 'campaigns', 'audit'];
     return arrays.every((key) => saved[key] === undefined || Array.isArray(saved[key])) ? saved : null;
   } catch (error) {
     console.warn('Wave could not read saved workspace data. Starting with demo data.', error);
@@ -91,6 +97,8 @@ let currentContentView = 'Pipeline';
 let editingContentId = null;
 let currentApprovalFilter = 'Pending';
 let currentCampaignId = null;
+let currentAuditFilter = 'All';
+let currentAuditQuery = '';
 const homeMarkup = document.querySelector('#pageContent').innerHTML;
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => [...document.querySelectorAll(selector)];
@@ -123,8 +131,18 @@ function acknowledge(button, message) {
   toast(message);
 }
 
-function recordActivity(icon, text) {
+function recordActivity(icon, text, details = {}) {
   state.activities.unshift({ icon, text, time: 'now' });
+  const agent = state.agents.find((item) => text.startsWith(item.name));
+  state.audit.unshift({
+    id: Date.now(),
+    action: text,
+    actor: details.actor || agent?.name || 'Alex Morgan',
+    module: details.module || currentPage,
+    category: details.category || (currentPage === 'Approvals' ? 'Decision' : currentPage === 'Content Studio' ? 'Content' : 'Operations'),
+    evidence: details.evidence || 'Workspace state changed',
+    time: new Date().toLocaleString()
+  });
   persist();
 }
 
@@ -258,6 +276,13 @@ const views = {
       ${summaryCards([{ icon: '$', value: money(outstanding), label: 'Outstanding' }, { icon: '!', value: state.invoices.filter((i) => i.status === 'Needs approval').length, label: 'Needs approval', color: 'amber' }, { icon: '✓', value: '100%', label: 'Deliverables matched', color: 'blue' }])}
       <section class="module-card invoice-card"><div class="module-card-head"><div><h3>Invoice queue</h3><p>Approval sends instructions to your payment provider; Wave never holds funds.</p></div><span class="safe-chip">⌾ Dual approval enabled</span></div><div class="table-head invoice-head"><span>Vendor</span><span>Deliverable</span><span>Due</span><span>Amount</span><span>Status</span></div>${state.invoices.map((invoice) => `<div class="table-row invoice-row"><span><i class="company-avatar">${invoice.vendor[0]}</i><b>${invoice.vendor}</b></span><span>${invoice.deliverable}</span><span>${invoice.due}</span><span><b>${money(invoice.amount)}</b></span><span>${invoice.status === 'Needs approval' ? `<button class="approve-btn" data-approve-invoice="${invoice.id}">Approve</button>` : `<em class="status-pill ${invoice.status.toLowerCase()}">${invoice.status}</em>`}</span></div>`).join('')}</section>`;
   },
+  'Audit Trail'() {
+    const query = currentAuditQuery.toLowerCase();
+    const entries = state.audit.filter((entry) => (currentAuditFilter === 'All' || entry.category === currentAuditFilter) && (!query || [entry.action, entry.actor, entry.module, entry.evidence].some((value) => value.toLowerCase().includes(query))));
+    return `${pageHeader('Audit Trail', 'Understand who or what changed the workspace, why it happened, and what evidence supported it.', '<button class="secondary-btn" id="exportAudit">↓ Export CSV</button>')}
+      ${summaryCards([{ icon: '≡', value: state.audit.length, label: 'Recorded actions' }, { icon: '✓', value: state.audit.filter((entry) => entry.category === 'Decision').length, label: 'Human decisions', color: 'blue' }, { icon: '✦', value: new Set(state.audit.map((entry) => entry.actor)).size, label: 'Active actors', color: 'purple' }, { icon: '⌾', value: state.audit.filter((entry) => entry.evidence !== 'Workspace state changed').length, label: 'Evidence linked', color: 'amber' }])}
+      <section class="module-card"><div class="module-toolbar audit-toolbar"><div class="segmented"><button class="${currentAuditFilter === 'All' ? 'active' : ''}" data-audit-filter="All">All</button><button class="${currentAuditFilter === 'Decision' ? 'active' : ''}" data-audit-filter="Decision">Decisions</button><button class="${currentAuditFilter === 'Content' ? 'active' : ''}" data-audit-filter="Content">Content</button><button class="${currentAuditFilter === 'Operations' ? 'active' : ''}" data-audit-filter="Operations">Operations</button></div><input class="module-search" id="auditSearch" value="${escapeHtml(currentAuditQuery)}" placeholder="Search actions, actors, evidence…"></div><div class="audit-list">${entries.map((entry) => `<article class="audit-row"><span class="audit-mark ${entry.category.toLowerCase()}"></span><div class="audit-action"><span><b>${escapeHtml(entry.action)}</b><em class="status-pill">${escapeHtml(entry.category)}</em></span><p>${escapeHtml(entry.evidence)}</p><small>${escapeHtml(entry.actor)} · ${escapeHtml(entry.module)}</small></div><time>${escapeHtml(entry.time)}</time></article>`).join('') || emptyState('⌕', 'No matching actions', 'Change the filters or search term to inspect more workspace history.')}</div></section>`;
+  },
   Analytics() {
     return `${pageHeader('Outcome Analytics', 'Connect agent activity to marketing and business outcomes.', '<button class="secondary-btn" id="exportReport">↓ Export report</button>')}
       ${summaryCards([{ icon: '✓', value: state.completed, label: 'Approved outcomes' }, { icon: '◷', value: '41h', label: 'Estimated time saved', color: 'blue' }, { icon: '$', value: '$7.80', label: 'Cost per outcome', color: 'purple' }, { icon: '↗', value: '92%', label: 'Approval rate' }])}
@@ -305,11 +330,18 @@ function applyApprovalDecision(id, status) {
     if (approval.type === 'Finance') { const invoice = state.invoices.find((item) => item.id === approval.targetId); if (invoice) invoice.status = 'Awaiting second approval'; }
     state.completed += 1;
   }
-  recordActivity(status === 'Approved' ? '✓' : '!', `${status}: ${approval.title}`);
+  recordActivity(status === 'Approved' ? '✓' : '!', `${status}: ${approval.title}`, { actor: 'Alex Morgan', module: 'Approvals', category: 'Decision', evidence: `${approval.risk} · ${approval.evidence}` });
   updateApprovalBadge(); navigate('Approvals'); toast(`Decision recorded: ${status.toLowerCase()}.`);
 }
 
 function attachModuleEvents(page) {
+  $$('[data-audit-filter]').forEach((button) => button.addEventListener('click', () => { currentAuditFilter = button.dataset.auditFilter; navigate('Audit Trail'); }));
+  $('#auditSearch')?.addEventListener('input', (event) => { currentAuditQuery = event.target.value; navigate('Audit Trail'); setTimeout(() => { const input = $('#auditSearch'); if (input) { input.focus(); input.setSelectionRange(input.value.length, input.value.length); } }, 0); });
+  $('#exportAudit')?.addEventListener('click', () => {
+    const quote = (value) => `"${String(value).replaceAll('"', '""')}"`;
+    const rows = [['Time', 'Actor', 'Module', 'Category', 'Action', 'Evidence'], ...state.audit.map((entry) => [entry.time, entry.actor, entry.module, entry.category, entry.action, entry.evidence])];
+    const csv = rows.map((row) => row.map(quote).join(',')).join('\n'); const link = document.createElement('a'); link.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' })); link.download = 'wave-audit-trail.csv'; link.click(); URL.revokeObjectURL(link.href); toast('Audit trail exported.');
+  });
   $$('[data-select-campaign]').forEach((button) => button.addEventListener('click', () => { currentCampaignId = Number(button.dataset.selectCampaign); navigate('Campaigns'); }));
   $$('[data-campaign-page]').forEach((button) => button.addEventListener('click', () => navigate(button.dataset.campaignPage)));
   $$('[data-campaign-task]').forEach((button) => button.addEventListener('click', () => {
