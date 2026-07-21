@@ -122,6 +122,19 @@ test('provides persistent brand memory and workspace roles', () => {
   assert.match(app, /state\.brandProfile\.voice/);
 });
 
+
+test('provides governed Agent Operations and connector health', () => {
+  assert.match(html, /data-page="Agent Operations"/);
+  assert.match(app, /'Agent Operations'\(\)/);
+  ['autonomy', 'budgetUsed', 'budgetLimit', 'runs', 'lastRun'].forEach((field) => assert.match(app, new RegExp(field)));
+  assert.match(app, /connectors: \[/);
+  assert.match(app, /data-agent-autonomy/);
+  assert.match(app, /data-run-agent/);
+  assert.match(app, /data-sync-connector/);
+  assert.match(app, /workload unit used/);
+  assert.match(app, /connector healthy/);
+});
+
 test('contains no merge markers or leaked conflict branch labels', () => {
   const debris = /^(<<<<<<<|=======|>>>>>>>)( |$)|^\s*(codex\/create-proposal-for-client-management-tools-[a-z0-9]+|main)\s*$/m;
   for (const [path, content] of files) assert.doesNotMatch(content, debris, path);
