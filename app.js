@@ -8,10 +8,16 @@ const defaults = {
     { id: 6, title: 'Respond to new integration opportunity', meta: 'Partnership Scout · Added 1 hour ago', type: 'Urgent', icon: '◇', owner: 'AM' }
   ],
   agents: [
-    { name: 'Content Strategist', status: 'Drafting campaign', icon: '✦', color: 'purple', active: true },
-    { name: 'Community Guardian', status: 'Monitoring 3 channels', icon: '◌', color: 'amber', active: true },
-    { name: 'Partnership Scout', status: 'Scored 8 new leads', icon: '◇', color: 'blue', active: true },
-    { name: 'Market Listener', status: 'Watching 14 narratives', icon: '↗', color: 'mint', active: true }
+    { name: 'Content Strategist', status: 'Drafting campaign', icon: '✦', color: 'purple', active: true, autonomy: 'Guided', budgetUsed: 68, budgetLimit: 100, runs: 42, lastRun: '12m ago' },
+    { name: 'Community Guardian', status: 'Monitoring 3 channels', icon: '◌', color: 'amber', active: true, autonomy: 'Supervised', budgetUsed: 44, budgetLimit: 80, runs: 118, lastRun: '4m ago' },
+    { name: 'Partnership Scout', status: 'Scored 8 new leads', icon: '◇', color: 'blue', active: true, autonomy: 'Guided', budgetUsed: 31, budgetLimit: 60, runs: 27, lastRun: '38m ago' },
+    { name: 'Market Listener', status: 'Watching 14 narratives', icon: '↗', color: 'mint', active: true, autonomy: 'Observe only', budgetUsed: 52, budgetLimit: 70, runs: 84, lastRun: '8m ago' }
+  ],
+  connectors: [
+    { id: 'discord', name: 'Discord', scope: 'Community signals', status: 'Healthy', lastSync: '4m ago', records: 284 },
+    { id: 'telegram', name: 'Telegram', scope: 'Community signals', status: 'Healthy', lastSync: '7m ago', records: 193 },
+    { id: 'x', name: 'X / Twitter', scope: 'Publishing and listening', status: 'Attention', lastSync: '2h ago', records: 76 },
+    { id: 'crm', name: 'CRM', scope: 'Partners and customers', status: 'Healthy', lastSync: '18m ago', records: 142 }
   ],
   activities: [
     { icon: '✦', text: 'Content Strategist created 3 draft posts', time: '12m' },
@@ -91,7 +97,7 @@ function readStoredState() {
   try {
     const saved = JSON.parse(window.localStorage.getItem(STATE_KEY) || 'null');
     if (!saved || typeof saved !== 'object') return null;
-    const arrays = ['tasks', 'agents', 'activities', 'content', 'signals', 'leads', 'events', 'customers', 'invoices', 'approvals', 'campaigns', 'audit', 'members'];
+    const arrays = ['tasks', 'agents', 'activities', 'content', 'signals', 'leads', 'events', 'customers', 'invoices', 'approvals', 'campaigns', 'audit', 'members', 'connectors'];
     return arrays.every((key) => saved[key] === undefined || Array.isArray(saved[key])) ? saved : null;
   } catch (error) {
     console.warn('Wave could not read saved workspace data. Starting with demo data.', error);
@@ -228,6 +234,13 @@ function summaryCards(cards) {
 }
 
 const views = {
+  'Agent Operations'() {
+    const totalUsed = state.agents.reduce((sum, agent) => sum + agent.budgetUsed, 0); const totalLimit = state.agents.reduce((sum, agent) => sum + agent.budgetLimit, 0); const healthy = state.connectors.filter((item) => item.status === 'Healthy').length;
+    return `${pageHeader('Agent Operations', 'Control autonomy, workload budgets, agent runs, and connected data health.')}
+      ${summaryCards([{ icon: '✦', value: state.agents.filter((agent) => agent.active).length, label: 'Active agents' }, { icon: '◷', value: state.agents.reduce((sum, agent) => sum + agent.runs, 0), label: 'Runs recorded', color: 'blue' }, { icon: '◎', value: totalUsed + ' / ' + totalLimit, label: 'Monthly workload units', color: 'purple' }, { icon: '↗', value: healthy + ' / ' + state.connectors.length, label: 'Healthy connectors', color: healthy === state.connectors.length ? 'mint' : 'amber' }])}
+      <section class="operations-grid"><article class="module-card"><div class="module-card-head"><div><h3>Agent controls</h3><p>Budgets reset monthly. Publishing and outreach still require approval.</p></div><span class="safe-chip">Human-governed</span></div><div class="operations-list">${state.agents.map((agent, index) => { const percent = Math.min(100, Math.round((agent.budgetUsed / agent.budgetLimit) * 100)); return `<div class="operations-agent"><span class="agent-orb ${agent.color}">${agent.icon}</span><div class="operations-copy"><span><b>${escapeHtml(agent.name)}</b><em class="status-pill ${agent.active ? 'scheduled' : ''}">${agent.active ? 'Active' : 'Paused'}</em></span><small>${escapeHtml(agent.status)} · Last run ${escapeHtml(agent.lastRun)}</small><div class="budget-meter"><i style="width:${percent}%"></i></div><small>${agent.budgetUsed} of ${agent.budgetLimit} workload units · ${agent.runs} runs</small></div><select data-agent-autonomy="${index}" aria-label="Autonomy for ${escapeHtml(agent.name)}"><option ${agent.autonomy === 'Observe only' ? 'selected' : ''}>Observe only</option><option ${agent.autonomy === 'Supervised' ? 'selected' : ''}>Supervised</option><option ${agent.autonomy === 'Guided' ? 'selected' : ''}>Guided</option></select><button class="secondary-btn compact" data-run-agent="${index}" ${agent.active ? '' : 'disabled'}>Run now</button></div>`; }).join('')}</div></article>
+      <aside class="module-card connector-card"><div class="module-card-head"><div><h3>Connector health</h3><p>Freshness of data feeding Wave agents.</p></div></div>${state.connectors.map((connector) => `<div class="connector-row"><span class="connector-mark ${connector.status === 'Healthy' ? '' : 'attention'}"></span><span><b>${escapeHtml(connector.name)}</b><small>${escapeHtml(connector.scope)} · ${connector.records} records</small></span><em>${escapeHtml(connector.status)}<small>Synced ${escapeHtml(connector.lastSync)}</small></em><button class="text-btn" data-sync-connector="${connector.id}">Sync</button></div>`).join('')}</aside></section>`;
+  },
   Campaigns() {
     if (!currentCampaignId && state.campaigns.length) currentCampaignId = state.campaigns[0].id;
     const campaign = state.campaigns.find((item) => item.id === currentCampaignId) || state.campaigns[0];
@@ -356,6 +369,9 @@ function applyApprovalDecision(id, status) {
 }
 
 function attachModuleEvents(page) {
+  $('[data-agent-autonomy]').forEach((select) => select.addEventListener('change', () => { const agent = state.agents[Number(select.dataset.agentAutonomy)]; if (!agent) return; const previous = agent.autonomy; agent.autonomy = select.value; recordActivity(agent.icon, `Changed ${agent.name} autonomy to ${agent.autonomy}`, { actor: 'Alex Morgan', module: 'Agent Operations', category: 'Decision', evidence: `Autonomy changed from ${previous} to ${agent.autonomy}` }); navigate('Agent Operations'); toast('Agent autonomy updated.'); }));
+  $('[data-run-agent]').forEach((button) => button.addEventListener('click', () => { const agent = state.agents[Number(button.dataset.runAgent)]; if (!agent || !agent.active) return; agent.runs += 1; agent.budgetUsed = Math.min(agent.budgetLimit, agent.budgetUsed + 1); agent.lastRun = 'just now'; agent.status = 'Run completed successfully'; recordActivity(agent.icon, `Ran ${agent.name} manually`, { actor: 'Alex Morgan', module: 'Agent Operations', category: 'Operations', evidence: `1 workload unit used · ${agent.autonomy} autonomy` }); navigate('Agent Operations'); toast(`${agent.name} run completed.`); }));
+  $('[data-sync-connector]').forEach((button) => button.addEventListener('click', () => { const connector = state.connectors.find((item) => item.id === button.dataset.syncConnector); if (!connector) return; connector.status = 'Healthy'; connector.lastSync = 'just now'; connector.records += Math.ceil(Math.random() * 5); recordActivity('↗', `Synced ${connector.name} connector`, { actor: 'Alex Morgan', module: 'Agent Operations', category: 'Operations', evidence: `${connector.records} records available · connector healthy` }); navigate('Agent Operations'); toast(`${connector.name} sync complete.`); }));
   $$('[data-settings-tab]').forEach((button) => button.addEventListener('click', () => { currentSettingsTab = button.dataset.settingsTab; navigate('Settings'); }));
   $('#brandMemoryForm')?.addEventListener('submit', (event) => {
     event.preventDefault(); const data = new FormData(event.currentTarget); const previous = state.brandProfile.name;
