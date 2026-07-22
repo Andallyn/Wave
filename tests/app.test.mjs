@@ -26,7 +26,7 @@ test('provides a visible boot failure recovery path', () => {
 });
 
 test('binds every main navigation destination', () => {
-  const pages = ['Command Center', 'Tasks', 'Content Studio', 'Community', 'Partnerships', 'Events', 'Customers', 'Finance', 'Analytics', 'Settings'];
+  assert.match(app, /navigate\('Tasks'\)/);
   pages.forEach((page) => assert.match(html, new RegExp(`data-page="${page}"`)));
   assert.match(app, /\.nav-item\[data-page\]/);
   assert.match(app, /navigate\(button\.dataset\.page\)/);
