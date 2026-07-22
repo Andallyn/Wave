@@ -100,3 +100,9 @@ If a deployed update appears but controls do not respond, hard-refresh the page 
 ## Success metrics
 
 The north-star metric is **approved outcomes shipped per active workspace per week**. Guardrails should include approval-to-rejection rate, response SLA, agent intervention rate, customer retention, connector reliability, and AI cost per approved outcome.
+
+## Cloud account foundation
+
+Wave includes an opt-in Supabase adapter for email authentication and private workspace synchronization. It stays in local beta mode until a project is configured, so missing cloud credentials never prevent the dashboard from starting.
+
+See [docs/CLOUD_SETUP.md](docs/CLOUD_SETUP.md) for setup instructions and [supabase/schema.sql](supabase/schema.sql) for the row-level-security schema. Only the public Supabase URL and anon key belong in `config.js`; never expose a service-role key in browser code.
