@@ -226,6 +226,18 @@ test('provides an operational Customer Success workspace', () => {
   assert.match(app, /navigate\('Tasks'\)/);
 });
 
+
+test('provides governed end-to-end Finance Operations', () => {
+  assert.match(app, /pageHeader\('Finance Operations'/);
+  ['approvalCount', 'matchStatus', 'reference', 'submittedBy'].forEach((field) => assert.match(app, new RegExp(field)));
+  ['data-finance-filter', 'data-select-invoice', 'data-match-invoice', 'data-approve-invoice', 'data-payment-instruction'].forEach((control) => assert.match(app, new RegExp(control)));
+  assert.match(app, /state\.invoices = state\.invoices\.map/);
+  assert.match(app, /Dual approval complete/);
+  assert.match(app, /Payment instruction sent to the connected provider/);
+  assert.match(app, /Wave prepares and records payment instructions/);
+  assert.match(app, /Invoice added as a draft/);
+});
+
 test('contains no merge markers or leaked conflict branch labels', () => {
   const debris = /^(<<<<<<<|=======|>>>>>>>)( |$)|^\s*(codex\/create-proposal-for-client-management-tools-[a-z0-9]+|main)\s*$/m;
   for (const [path, content] of files) assert.doesNotMatch(content, debris, path);
