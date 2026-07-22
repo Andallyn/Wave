@@ -264,3 +264,11 @@ test('provides safe beta onboarding, export, and feedback workflows', () => {
   assert.match(html, /privacy\.html/);
   assert.match(html, /terms\.html/);
 });
+
+test('provides a gated Supabase account and cloud workspace foundation', () => {
+  ['Account & cloud', 'cloudSignInForm', 'cloudSignUpForm', 'saveCloudNow', 'importLocalCloud', 'cloudSignOut', 'initializeWaveCloud', 'WaveCloud'].forEach((marker) => assert.ok(app.includes(marker), marker));
+  assert.match(html, /config\.js\?v=1/);
+  assert.match(html, /cloud\.js\?v=1/);
+  assert.match(app, /service-role key/);
+  assert.match(app, /scheduleSave\(state\)/);
+});
