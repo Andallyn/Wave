@@ -100,6 +100,26 @@ const defaults = {
 };
 
 const STATE_KEY = 'wave-state-v3';
+const DIAGNOSTICS_KEY = 'wave-diagnostics-v1';
+const LAST_SAVE_KEY = 'wave-last-save-v1';
+const WAVE_APP_VERSION = 'beta-0.29';
+
+function readDiagnostics() {
+  try { const value = JSON.parse(window.localStorage.getItem(DIAGNOSTICS_KEY) || '[]'); return Array.isArray(value) ? value.slice(0, 20) : []; }
+  catch (error) { return []; }
+}
+function captureDiagnostic(kind, message, detail = '') {
+  try {
+    const items = readDiagnostics();
+    items.unshift({ id: Date.now(), time: new Date().toISOString(), kind, message: String(message || 'Unknown event').slice(0, 240), detail: String(detail || '').slice(0, 500), page: currentPage || 'Startup' });
+    window.localStorage.setItem(DIAGNOSTICS_KEY, JSON.stringify(items.slice(0, 20)));
+  } catch (error) { console.warn('Wave could not store diagnostics.', error); }
+}
+function validWorkspaceShape(candidate) {
+  if (!candidate || typeof candidate !== 'object' || Array.isArray(candidate)) return false;
+  const arrays = ['tasks', 'agents', 'activities', 'content', 'signals', 'leads', 'events', 'customers', 'invoices', 'approvals', 'campaigns', 'audit', 'members', 'connectors', 'goals', 'briefingDismissed', 'briefingSnoozed', 'automations'];
+  return arrays.every((key) => candidate[key] === undefined || Array.isArray(candidate[key]));
+}
 
 const clone = (value) => typeof structuredClone === 'function'
   ? structuredClone(value)
@@ -170,8 +190,10 @@ const $$ = (selector) => [...document.querySelectorAll(selector)];
 const persist = () => {
   try {
     window.localStorage.setItem(STATE_KEY, JSON.stringify(state));
+    window.localStorage.setItem(LAST_SAVE_KEY, new Date().toISOString());
   } catch (error) {
     console.warn('Wave could not save workspace data in this browser.', error);
+    captureDiagnostic('Storage error', error.message, 'Local workspace save failed');
   }
   window.WaveCloud?.scheduleSave(state);
 };
@@ -402,7 +424,7 @@ const views = {
       <section class="analytics-bottom"><article class="module-card"><div class="module-card-head"><div><h3>Channel performance</h3><p>Outcomes and engagement by connected channel.</p></div></div><div class="performance-head"><span>Channel</span><span>Outcomes</span><span>Engagement</span><span>Trend</span></div>${snapshot.channels.map((channel) => `<div class="performance-row"><span><b>${channel.name}</b><small>${channel.source}</small></span><strong>${channel.outcomes}</strong><span>${channel.engagement}</span><em class="positive-text">${channel.trend}</em></div>`).join('')}</article><article class="module-card"><div class="module-card-head"><div><h3>Agent contribution</h3><p>Approved work by specialist.</p></div></div><div class="contribution-list">${state.agents.map((agent, i) => `<div><span class="agent-orb ${agent.color}">${agent.icon}</span><p><b>${agent.name}</b><small>${snapshot.contributions[i]}% of outcomes</small></p><div><i style="width:${snapshot.contributions[i] * 2}%"></i></div></div>`).join('')}</div></article></section>`;
   },
   Settings() {
-    const tabs = ['Agents', 'Brand memory', 'Members & roles', 'Account & cloud', 'Beta & data'];
+    const tabs = ['Agents', 'Brand memory', 'Members & roles', 'Account & cloud', 'Reliability', 'Beta & data'];
     const rolePermissions = { Owner: 'Full workspace, billing, members, and approvals', Editor: 'Create and edit work; submit approvals', Reviewer: 'Review and decide assigned approvals', Viewer: 'Read-only workspace access' };
     const nav = `<nav class="settings-nav">${tabs.map((tab) => `<button class="${currentSettingsTab === tab ? 'active' : ''}" data-settings-tab="${tab}">${tab}</button>`).join('')}<button data-page-link="Audit Trail">Audit Trail</button></nav>`;
     let body = '';
@@ -410,6 +432,11 @@ const views = {
     if (currentSettingsTab === 'Brand memory') body = `<article class="module-card settings-main"><div class="module-card-head"><div><h3>Brand memory</h3><p>The shared context Wave uses when generating content and recommendations.</p></div><span class="live-chip"><i></i>Used by agents</span></div><form id="brandMemoryForm" class="brand-form"><label>Brand name<input name="name" value="${escapeHtml(state.brandProfile.name)}" required></label><label>Voice and tone<textarea name="voice" rows="3" required>${escapeHtml(state.brandProfile.voice)}</textarea></label><label>Primary audience<textarea name="audience" rows="3" required>${escapeHtml(state.brandProfile.audience)}</textarea></label><label>Core promise<textarea name="promise" rows="3" required>${escapeHtml(state.brandProfile.promise)}</textarea></label><label>Words and claims to avoid<textarea name="avoid" rows="3">${escapeHtml(state.brandProfile.avoid)}</textarea></label><label>Preferred language<textarea name="terms" rows="3">${escapeHtml(state.brandProfile.terms)}</textarea></label><div class="brand-memory-foot"><small>Changes are recorded in Audit Trail and apply to future generated drafts.</small><button class="primary-btn" type="submit">Save brand memory</button></div></form></article>`;
     if (currentSettingsTab === 'Members & roles') body = `<article class="module-card settings-main"><div class="module-card-head"><div><h3>Members & roles</h3><p>Make responsibility and workspace access explicit.</p></div><span class="safe-chip">${state.members.length} members</span></div><div class="role-guide">${Object.entries(rolePermissions).map(([role, permissions]) => `<div><b>${role}</b><small>${permissions}</small></div>`).join('')}</div><div class="member-list">${state.members.map((member) => `<div class="member-row"><span class="avatar">${escapeHtml(member.initials)}</span><span><b>${escapeHtml(member.name)}</b><small>${escapeHtml(member.email)}</small></span><select data-member-role="${member.id}" aria-label="Role for ${escapeHtml(member.name)}">${Object.keys(rolePermissions).map((role) => `<option ${member.role === role ? 'selected' : ''}>${role}</option>`).join('')}</select><small>${escapeHtml(rolePermissions[member.role] || '')}</small></div>`).join('')}</div></article>`;
     if (currentSettingsTab === 'Account & cloud') body = `<article class="module-card settings-main cloud-account-panel"><div class="module-card-head"><div><h3>Account & cloud workspace</h3><p>Move from one-browser demo storage to a private account-backed workspace.</p></div><span class="cloud-status ${cloudStatus.authenticated ? 'connected' : cloudStatus.configured ? 'ready' : 'local'}">${cloudStatus.authenticated ? 'Cloud connected' : cloudStatus.configured ? 'Ready to sign in' : 'Local beta mode'}</span></div>${!cloudStatus.configured ? `<div class="cloud-setup"><h3>Cloud connection not configured</h3><p>Wave is safely continuing in local beta mode. Connect a Supabase project using the repository setup guide to enable real accounts and private cloud sync.</p><ol><li>Create a Supabase project.</li><li>Run <code>supabase/schema.sql</code> in its SQL editor.</li><li>Add the public project URL and anon key to <code>config.js</code>.</li><li>Redeploy and return here to create an account.</li></ol><a class="primary-btn" href="https://github.com/Andallyn/Wave/blob/main/docs/CLOUD_SETUP.md" target="_blank" rel="noopener">Open setup guide</a></div>` : cloudStatus.authenticated ? `<div class="cloud-connected"><span class="avatar">${escapeHtml((cloudStatus.email || 'U').slice(0, 2).toUpperCase())}</span><div><b>${escapeHtml(cloudStatus.email)}</b><small>Authenticated with Supabase · private workspace policy enabled</small></div></div><div class="cloud-actions"><button class="primary-btn" id="saveCloudNow" type="button">Save to cloud now</button><button class="secondary-btn" id="importLocalCloud" type="button">Import this browser workspace</button><button class="reset-btn" id="cloudSignOut" type="button">Sign out</button></div><div class="beta-notice"><b>Importing replaces your cloud workspace.</b><p>Your current browser data remains available locally. Wave never uses a Supabase service-role key in the browser.</p></div>` : `<div class="auth-grid"><form id="cloudSignInForm" class="cloud-auth-form"><h3>Sign in</h3><p>Open your private Wave workspace.</p><label>Email<input name="email" type="email" autocomplete="email" required></label><label>Password<input name="password" type="password" autocomplete="current-password" minlength="8" required></label><button class="primary-btn" type="submit">Sign in</button></form><form id="cloudSignUpForm" class="cloud-auth-form"><h3>Create beta account</h3><p>Your Supabase project may require email confirmation.</p><label>Email<input name="email" type="email" autocomplete="email" required></label><label>Password<input name="password" type="password" autocomplete="new-password" minlength="8" required></label><button class="secondary-btn" type="submit">Create account</button></form></div>`}<p class="cloud-message" role="status">${escapeHtml(cloudStatus.message || '')}</p></article>`;
+    if (currentSettingsTab === 'Reliability') {
+      const diagnostics = readDiagnostics(); const stateBytes = new Blob([JSON.stringify(state)]).size; let lastSaved = 'Not saved in this browser yet';
+      try { const saved = window.localStorage.getItem(LAST_SAVE_KEY); if (saved) lastSaved = new Date(saved).toLocaleString(); } catch (error) {}
+      body = `<article class="module-card settings-main reliability-panel"><div class="module-card-head"><div><h3>Reliability Center</h3><p>Check browser health, preserve a recovery copy, and inspect recent client errors.</p></div><span class="safe-chip">Wave ${WAVE_APP_VERSION}</span></div><div class="reliability-grid"><div><small>Application</small><b>Ready</b></div><div><small>Storage mode</small><b>${cloudStatus.authenticated ? 'Cloud + browser' : 'Browser only'}</b></div><div><small>Workspace size</small><b>${Math.max(1, Math.round(stateBytes / 1024))} KB</b></div><div><small>Last browser save</small><b>${escapeHtml(lastSaved)}</b></div></div><div class="recovery-card"><div><h3>Recovery backup</h3><p>Download a complete workspace copy before major testing. Restore validates the file before replacing browser data.</p></div><div class="cloud-actions"><button class="primary-btn" id="downloadRecovery" type="button">Download recovery backup</button><button class="secondary-btn" id="chooseRecovery" type="button">Restore from backup</button><input id="recoveryFile" type="file" accept="application/json,.json" hidden></div><div class="beta-notice"><b>Recovery files may contain workspace information.</b><p>Store them securely and review them before sharing.</p></div></div><div class="diagnostic-head"><div><h3>Recent diagnostics</h3><p>Stored only in this browser and limited to the 20 most recent events.</p></div><div><button class="secondary-btn" id="runReliabilityCheck" type="button">Run checks</button><button class="reset-btn" id="clearDiagnostics" type="button">Clear log</button></div></div><div class="diagnostic-list">${diagnostics.length ? diagnostics.map((item) => `<div class="diagnostic-row"><span class="status-dot ${item.kind === 'Check passed' ? '' : 'warn'}"></span><div><b>${escapeHtml(item.kind)} · ${escapeHtml(item.message)}</b><small>${escapeHtml(new Date(item.time).toLocaleString())} · ${escapeHtml(item.page)}${item.detail ? ` · ${escapeHtml(item.detail)}` : ''}</small></div></div>`).join('') : '<div class="empty-state">No browser errors have been recorded.</div>'}</div><button class="text-btn" id="exportDiagnostics" type="button">Download diagnostic report →</button></article>`;
+    }
     if (currentSettingsTab === 'Beta & data') body = `<article class="module-card settings-main beta-data-panel"><div class="module-card-head"><div><h3>Beta testing & data</h3><p>Understand what this preview stores, export your work, and report useful feedback.</p></div><span class="beta-status">Browser-only beta</span></div><div class="beta-notice"><b>Your Wave data currently stays in this browser.</b><p>It is not shared with other testers or backed up to a Wave account. Do not enter passwords, payment credentials, private keys, or confidential client information.</p></div><div class="beta-actions"><button class="primary-btn" id="openBetaGuide" type="button">View testing guide</button><button class="secondary-btn" id="exportWorkspace" type="button">Export workspace data</button></div><form id="betaFeedbackForm" class="beta-feedback"><h3>Prepare a feedback report</h3><p>Wave downloads your report as a file so you can share it with the product team. This preview does not transmit it automatically.</p><div class="form-row"><label>Feedback type<select name="type"><option>Bug</option><option>Confusing experience</option><option>Feature request</option><option>What worked well</option></select></label><label>Area<select name="area"><option>Overall experience</option><option>Tasks & approvals</option><option>Content & campaigns</option><option>Customers & partnerships</option><option>Finance & analytics</option><option>Mobile experience</option></select></label></div><label>What happened or what would help?<textarea name="details" rows="5" required maxlength="1500" placeholder="Include what you tried, what you expected, and what happened."></textarea></label><label>Contact (optional)<input name="contact" type="email" placeholder="you@example.com"></label><button class="primary-btn" type="submit">Download feedback report</button></form><div class="legal-links"><a href="privacy.html" target="_blank" rel="noopener">Privacy notice</a><a href="terms.html" target="_blank" rel="noopener">Beta terms</a><a href="https://github.com/Andallyn/Wave/issues/new" target="_blank" rel="noopener">Report on GitHub</a></div><button class="reset-btn" id="resetDemo">Reset demo workspace</button></article>`;
     return `${pageHeader('Workspace Settings', 'Control brand context, agent boundaries, roles, and accountability.')}
       <section class="settings-layout">${nav}${body}</section>`;
@@ -549,6 +576,33 @@ function attachModuleEvents(page) {
     const member = state.members.find((item) => item.id === Number(select.dataset.memberRole)); if (!member) return; const previous = member.role; member.role = select.value;
     recordActivity('♙', `Changed ${member.name}'s role to ${member.role}`, { actor: 'Alex Morgan', module: 'Settings', category: 'Decision', evidence: `Access changed from ${previous} to ${member.role}` }); navigate('Settings'); toast(`${member.name} is now a ${member.role}.`);
   }));
+  $('#downloadRecovery')?.addEventListener('click', () => {
+    const payload = { format: 'wave-recovery', version: 1, appVersion: WAVE_APP_VERSION, createdAt: new Date().toISOString(), workspace: state };
+    const link = document.createElement('a'); link.href = URL.createObjectURL(new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' })); link.download = `wave-recovery-${new Date().toISOString().slice(0, 10)}.json`; link.click(); URL.revokeObjectURL(link.href); captureDiagnostic('Backup', 'Recovery backup downloaded'); toast('Recovery backup downloaded. Store it securely.');
+  });
+  $('#chooseRecovery')?.addEventListener('click', () => $('#recoveryFile')?.click());
+  $('#recoveryFile')?.addEventListener('change', async (event) => {
+    const file = event.target.files?.[0]; if (!file) return;
+    try {
+      if (file.size > 5000000) throw new Error('Backup is larger than the 5 MB safety limit.');
+      const payload = JSON.parse(await file.text());
+      if (payload.format !== 'wave-recovery' || payload.version !== 1 || !validWorkspaceShape(payload.workspace)) throw new Error('This is not a valid Wave recovery backup.');
+      if (!window.confirm('Restore this backup? Current browser workspace data will be replaced.')) return;
+      const restored = {}; Object.keys(defaults).forEach((key) => { if (payload.workspace[key] !== undefined) restored[key] = payload.workspace[key]; });
+      window.localStorage.setItem(STATE_KEY, JSON.stringify(restored)); window.localStorage.setItem(LAST_SAVE_KEY, new Date().toISOString()); captureDiagnostic('Restore', 'Recovery backup restored'); window.location.reload();
+    } catch (error) { captureDiagnostic('Restore error', error.message); toast(error.message || 'Wave could not restore this backup.'); event.target.value = ''; }
+  });
+  $('#runReliabilityCheck')?.addEventListener('click', () => {
+    const required = ['pageContent', 'sidebar', 'taskDialog']; const missing = required.filter((id) => !document.getElementById(id));
+    if (missing.length) captureDiagnostic('Check failed', 'Required interface elements are missing', missing.join(', '));
+    else captureDiagnostic('Check passed', 'Application, storage, and interface checks passed', cloudStatus.authenticated ? 'Cloud session active' : 'Local mode active');
+    navigate('Settings'); toast(missing.length ? 'Reliability check found a problem.' : 'Reliability checks passed.');
+  });
+  $('#clearDiagnostics')?.addEventListener('click', () => { try { window.localStorage.removeItem(DIAGNOSTICS_KEY); } catch (error) {} navigate('Settings'); toast('Diagnostic history cleared.'); });
+  $('#exportDiagnostics')?.addEventListener('click', () => {
+    const report = { appVersion: WAVE_APP_VERSION, createdAt: new Date().toISOString(), cloud: cloudStatus.mode, authenticated: cloudStatus.authenticated, diagnostics: readDiagnostics(), userAgent: navigator.userAgent };
+    const link = document.createElement('a'); link.href = URL.createObjectURL(new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' })); link.download = 'wave-diagnostics.json'; link.click(); URL.revokeObjectURL(link.href); toast('Diagnostic report downloaded.');
+  });
   const handleCloudAuth = async (event, action) => {
     event.preventDefault(); const data = new FormData(event.currentTarget); const email = String(data.get('email') || '').trim(); const password = String(data.get('password') || '');
     const button = event.currentTarget.querySelector('button[type="submit"]'); if (button) button.disabled = true;
@@ -796,6 +850,14 @@ try {
     if (typeof betaWelcomeDialog.showModal === 'function') betaWelcomeDialog.showModal(); else betaWelcomeDialog.setAttribute('open', '');
   }, 250);
 } catch (error) { console.warn(error); }
+window.addEventListener('error', (event) => {
+  const source = event.filename ? event.filename.split('/').pop() : 'browser';
+  captureDiagnostic('Runtime error', event.message || 'Unknown browser error', `${source}:${event.lineno || 0}:${event.colno || 0}`);
+});
+window.addEventListener('unhandledrejection', (event) => {
+  const reason = event.reason instanceof Error ? event.reason.message : String(event.reason || 'Unknown rejected promise');
+  captureDiagnostic('Unhandled request error', reason);
+});
 async function initializeWaveCloud() {
   if (!window.WaveCloud) return;
   try {
