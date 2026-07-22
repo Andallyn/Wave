@@ -256,3 +256,11 @@ test('contains no merge markers or leaked conflict branch labels', () => {
   const debris = /^(<<<<<<<|=======|>>>>>>>)( |$)|^\s*(codex\/create-proposal-for-client-management-tools-[a-z0-9]+|main)\s*$/m;
   for (const [path, content] of files) assert.doesNotMatch(content, debris, path);
 });
+
+test('provides safe beta onboarding, export, and feedback workflows', () => {
+  ['betaWelcomeDialog', 'betaWelcomeForm', 'wave-beta-onboarding-v1', 'openBetaGuide', 'exportWorkspace', 'betaFeedbackForm', 'wave-workspace-export.json', 'wave-feedback-'].forEach((marker) => assert.match(app + html, new RegExp(marker)));
+  assert.match(app, /This preview does not transmit it automatically/);
+  assert.match(html, /I will not enter confidential or financial credentials/);
+  assert.match(html, /privacy\.html/);
+  assert.match(html, /terms\.html/);
+});
