@@ -236,6 +236,9 @@ test('provides governed end-to-end Finance Operations', () => {
   assert.match(app, /Payment instruction sent to the connected provider/);
   assert.match(app, /Wave prepares and records payment instructions/);
   assert.match(app, /Invoice added as a draft/);
+  assert.match(app, />Select<\/button>/);
+  assert.match(app, /finance-row-actions/);
+  assert.match(app, /Invoice selected\. Review its evidence/);
 });
 
 test('contains no merge markers or leaked conflict branch labels', () => {
