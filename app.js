@@ -131,6 +131,10 @@ state.customers = state.customers.map((customer) => {
     interactions: Array.isArray(customer.interactions) ? customer.interactions : clone(seed.interactions || [])
   };
 });
+state.invoices = state.invoices.map((invoice) => {
+  const seed = defaults.invoices.find((item) => item.id === invoice.id) || {};
+  return { ...clone(seed), ...invoice, approvalCount: Number.isFinite(invoice.approvalCount) ? invoice.approvalCount : (seed.approvalCount || 0), matchStatus: invoice.matchStatus || seed.matchStatus || 'Needs evidence' };
+});
 let currentFilter = 'All';
 let currentPage = 'Command Center';
 let currentContentView = 'Pipeline';
