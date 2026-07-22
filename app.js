@@ -371,7 +371,7 @@ const views = {
     return `${pageHeader('Content Studio', 'Move on-brand ideas from brief to approval and schedule.', '<button class="primary-btn" id="generateContent">✦ Generate draft</button>')}
       ${summaryCards([{ icon: '✦', value: review, label: 'Waiting for review', color: 'purple' }, { icon: '□', value: state.content.filter((item) => item.status === 'Scheduled').length, label: 'Scheduled', color: 'blue' }, { icon: '↗', value: state.content.length, label: 'Total assets' }])}
       <section class="module-layout"><article class="module-card"><div class="module-card-head"><div><h3>${currentContentView === 'Calendar' ? 'Publishing calendar' : 'Editorial pipeline'}</h3><p>${currentContentView === 'Calendar' ? 'Scheduled and unscheduled assets ordered by publishing date.' : 'Drafts and scheduled content across connected channels.'}</p></div><div class="segmented"><button class="${currentContentView === 'Pipeline' ? 'active' : ''}" data-content-view="Pipeline">Pipeline</button><button class="${currentContentView === 'Calendar' ? 'active' : ''}" data-content-view="Calendar">Calendar</button></div></div><div class="content-list">${contentItems.map((item) => `<article class="content-row"><span class="channel-icon">${item.channel.startsWith('X') ? '𝕏' : item.channel === 'LinkedIn' ? 'in' : '✦'}</span><div class="content-main"><span><b>${escapeHtml(item.title)}</b><em class="status-pill ${item.status.toLowerCase()}">${item.status}</em></span><p>${escapeHtml(item.copy)}</p><small>${escapeHtml(item.channel)} · ${escapeHtml(item.campaign)} · ${escapeHtml(item.date)}</small></div><div class="row-actions"><button class="secondary-btn compact" data-preview-content="${item.id}">Preview</button><button class="secondary-btn compact" data-edit-content="${item.id}">Edit</button>${item.status === 'Review' ? `<button class="approve-btn" data-approve-content="${item.id}">Approve</button>` : ''}<button class="row-menu delete-content" data-delete-content="${item.id}" aria-label="Delete ${escapeHtml(item.title)}">×</button></div></article>`).join('') || emptyState('✦', 'No content yet', 'Generate a draft to start the editorial pipeline.')}</div></article>
-      <aside class="module-card brief-card"><span class="module-symbol purple">✦</span><h3>Agent brief</h3><p>Content Strategist is using your brand voice, launch narrative, and recent performance data.</p><dl><div><dt>Primary goal</dt><dd>Mainnet awareness</dd></div><div><dt>Audience</dt><dd>Protocol builders</dd></div><div><dt>Voice match</dt><dd>94%</dd></div></dl><button class="secondary-btn full" data-page-link="Settings">Edit brand profile</button></aside></section>`;
+      <aside class="module-card brief-card"><span class="module-symbol purple">✦</span><h3>Agent brief</h3><span class="ai-mode ${cloudStatus.authenticated ? 'ready' : 'demo'}">${cloudStatus.authenticated ? 'AI gateway ready' : 'Demo generation'}</span><p>Content Strategist is using your brand voice, launch narrative, and recent performance data.</p><dl><div><dt>Primary goal</dt><dd>Mainnet awareness</dd></div><div><dt>Audience</dt><dd>Protocol builders</dd></div><div><dt>Voice match</dt><dd>94%</dd></div></dl><button class="secondary-btn full" data-page-link="Settings">Edit brand profile</button></aside></section>`;
   },
   Community() {
     return `${pageHeader('Community Desk', 'Understand conversations, emerging risks, and unanswered questions.', '<button class="primary-btn" id="runScan">◌ Run live scan</button>')}
@@ -679,16 +679,27 @@ function attachModuleEvents(page) {
     const item = state.content.find((content) => content.id === Number(button.dataset.approveContent));
     item.status = 'Scheduled'; recordActivity('✦', `Approved content: ${item.title}`); navigate('Content Studio'); toast('Content approved and added to the publishing schedule.');
   }));
-  $('#generateContent')?.addEventListener('click', () => {
+  $('#generateContent')?.addEventListener('click', async (event) => {
+    const button = event.currentTarget; button.disabled = true; button.textContent = '✦ Generating…';
     const ideas = [
       { title: 'Builder spotlight: shipping on Nova', channel: 'LinkedIn', campaign: 'Ecosystem', copy: 'Meet the builders turning open infrastructure into useful products for real communities.' },
       { title: 'Three lessons from the latest testnet milestone', channel: 'X thread', campaign: 'Mainnet launch', copy: 'What the latest testnet taught us about resilience, developer experience, and the path to mainnet.' },
       { title: 'Community questions, answered', channel: 'LinkedIn', campaign: 'Education', copy: 'A concise guide to the questions builders and community members asked most often this week.' }
     ];
-    const usedTitles = new Set(state.content.map((item) => item.title));
-    const draft = ideas.find((idea) => !usedTitles.has(idea.title)) || ideas[state.content.length % ideas.length];
-    state.content.unshift({ id: Date.now(), ...draft, status: 'Draft', date: 'Unscheduled' });
-    recordActivity('✦', `Content Strategist generated: ${draft.title}`, { actor: 'Content Strategist', module: 'Content Studio', category: 'Content', evidence: `${state.brandProfile.name} · ${state.brandProfile.voice}` }); navigate('Content Studio'); toast(`New draft generated using ${state.brandProfile.name} brand memory.`);
+    let draft; let source = 'Demo generator';
+    try {
+      const token = window.WaveCloud?.accessToken?.();
+      if (!cloudStatus.authenticated || !token) throw new Error('AI gateway requires a connected cloud account.');
+      const response = await fetch('/api/generate', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ task: 'content_draft', brand: state.brandProfile, brief: { goal: 'Mainnet awareness', audience: state.brandProfile.audience, channel: 'LinkedIn or X thread' } }) });
+      const payload = await response.json(); if (!response.ok) throw new Error(payload.error || 'AI generation failed.');
+      draft = payload.draft; source = `OpenAI · ${payload.model}`;
+    } catch (error) {
+      const usedTitles = new Set(state.content.map((item) => item.title));
+      draft = ideas.find((idea) => !usedTitles.has(idea.title)) || ideas[state.content.length % ideas.length];
+      captureDiagnostic('AI fallback', error.message, 'Used safe demo generator');
+    }
+    state.content.unshift({ id: Date.now(), ...draft, status: 'Draft', date: 'Unscheduled', generatedBy: source });
+    recordActivity('✦', `Content Strategist generated: ${draft.title}`, { actor: 'Content Strategist', module: 'Content Studio', category: 'Content', evidence: `${source} · ${state.brandProfile.name} · human review required` }); navigate('Content Studio'); toast(source.startsWith('OpenAI') ? 'AI draft created and held for human review.' : 'Demo draft created. Connect your cloud account to activate real AI.');
   });
   $$('[data-resolve-signal]').forEach((button) => button.addEventListener('click', () => {
     const signal = state.signals.find((item) => item.id === Number(button.dataset.resolveSignal)); signal.resolved = true; recordActivity('◌', `Resolved signal: ${signal.title}`); navigate('Community'); toast('Signal resolved and logged.');
