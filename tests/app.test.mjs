@@ -212,6 +212,16 @@ test('provides governed persistent Automation Rules', () => {
   assert.match(app, /Ran automation/);
 });
 
+
+test('provides an operational Customer Success workspace', () => {
+  assert.match(app, /pageHeader\('Customer Success'/);
+  ['owner', 'renewal', 'value', 'milestones', 'interactions'].forEach((field) => assert.match(app, new RegExp(field)));
+  ['data-customer-filter', 'data-select-customer', 'data-customer-milestone', 'data-add-customer-note', 'data-update-customer-health'].forEach((control) => assert.match(app, new RegExp(control)));
+  assert.match(app, /Customer success plan updated/);
+  assert.match(app, /Customer interaction saved/);
+  assert.match(app, /Customer health updated with evidence/);
+});
+
 test('contains no merge markers or leaked conflict branch labels', () => {
   const debris = /^(<<<<<<<|=======|>>>>>>>)( |$)|^\s*(codex\/create-proposal-for-client-management-tools-[a-z0-9]+|main)\s*$/m;
   for (const [path, content] of files) assert.doesNotMatch(content, debris, path);
