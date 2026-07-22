@@ -26,7 +26,7 @@ test('provides a visible boot failure recovery path', () => {
 });
 
 test('binds every main navigation destination', () => {
-  assert.match(app, /navigate\('Tasks'\)/);
+  const pages = ['Command Center', 'Tasks', 'Content Studio', 'Community', 'Partnerships', 'Events', 'Customers', 'Finance', 'Analytics', 'Settings'];
   pages.forEach((page) => assert.match(html, new RegExp(`data-page="${page}"`)));
   assert.match(app, /\.nav-item\[data-page\]/);
   assert.match(app, /navigate\(button\.dataset\.page\)/);
@@ -223,7 +223,7 @@ test('provides an operational Customer Success workspace', () => {
   assert.match(app, /milestones: Array\.isArray\(customer\.milestones\)/);
   assert.match(app, /interactions: Array\.isArray\(customer\.interactions\)/);
   assert.match(app, /Create task ·/);
-  assert.match(app, /navigate\\('Tasks'\)/);
+  assert.match(app, /navigate\('Tasks'\)/);
 });
 
 test('contains no merge markers or leaked conflict branch labels', () => {
