@@ -110,3 +110,7 @@ See [docs/CLOUD_SETUP.md](docs/CLOUD_SETUP.md) for setup instructions and [supab
 ## Reliability and recovery
 
 Settings → Reliability provides local health checks, a 20-event browser diagnostic log, complete recovery-backup downloads, validated restoration, and diagnostic-report export. Restore accepts only the versioned Wave recovery format, enforces a 5 MB limit, validates the workspace shape, and copies only known workspace fields.
+
+## Authenticated AI generation
+
+Content Studio can use the server-side `/api/generate` gateway after Supabase authentication and Vercel environment configuration. The browser never receives the OpenAI key. Unauthenticated or unavailable AI requests fall back to the visibly labelled demo generator, and every generated item remains a draft requiring human review. See [docs/AI_SETUP.md](docs/AI_SETUP.md).

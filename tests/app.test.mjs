@@ -281,3 +281,12 @@ test('provides validated recovery backups and local reliability diagnostics', ()
   assert.match(app, /unhandledrejection/);
   assert.match(app, /DIAGNOSTICS_KEY/);
 });
+
+test('uses an authenticated server-side AI gateway with a safe demo fallback', () => {
+  assert.match(app, /fetch\('\/api\/generate'/);
+  assert.match(app, /Authorization: `Bearer/);
+  assert.match(app, /WaveCloud\?\.accessToken/);
+  assert.match(app, /human review required/);
+  assert.match(app, /AI fallback/);
+  assert.match(app, /Demo draft created/);
+});

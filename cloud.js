@@ -102,5 +102,5 @@
     saveTimer = window.setTimeout(() => saveWorkspace(copy).catch((error) => console.warn('Wave cloud autosave failed.', error)), 900);
   }
 
-  window.WaveCloud = { init, signIn, signUp, signOut, loadWorkspace, saveWorkspace, scheduleSave, status: snapshot };
+  window.WaveCloud = { init, signIn, signUp, signOut, loadWorkspace, saveWorkspace, scheduleSave, status: snapshot, accessToken: () => session?.access_token || '' };
 })();
