@@ -106,3 +106,7 @@ The north-star metric is **approved outcomes shipped per active workspace per we
 Wave includes an opt-in Supabase adapter for email authentication and private workspace synchronization. It stays in local beta mode until a project is configured, so missing cloud credentials never prevent the dashboard from starting.
 
 See [docs/CLOUD_SETUP.md](docs/CLOUD_SETUP.md) for setup instructions and [supabase/schema.sql](supabase/schema.sql) for the row-level-security schema. Only the public Supabase URL and anon key belong in `config.js`; never expose a service-role key in browser code.
+
+## Reliability and recovery
+
+Settings → Reliability provides local health checks, a 20-event browser diagnostic log, complete recovery-backup downloads, validated restoration, and diagnostic-report export. Restore accepts only the versioned Wave recovery format, enforces a 5 MB limit, validates the workspace shape, and copies only known workspace fields.
