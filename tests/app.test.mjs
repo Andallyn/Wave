@@ -241,6 +241,17 @@ test('provides governed end-to-end Finance Operations', () => {
   assert.match(app, /Invoice selected\. Review its evidence/);
 });
 
+
+test('provides an approval-gated Partnership CRM', () => {
+  assert.match(app, /pageHeader\('Partnership CRM'/);
+  ['contact', 'nextStep', 'fitReasons', 'interactions'].forEach((field) => assert.match(app, new RegExp(field)));
+  ['data-lead-filter', 'data-select-lead', 'data-add-lead-note', 'data-create-outreach'].forEach((control) => assert.match(app, new RegExp(control)));
+  assert.match(app, /state\.leads = state\.leads\.map/);
+  assert.match(app, /First external outreach/);
+  assert.match(app, /Outreach draft routed to Approval Inbox/);
+  assert.match(app, /Relationship note saved/);
+});
+
 test('contains no merge markers or leaked conflict branch labels', () => {
   const debris = /^(<<<<<<<|=======|>>>>>>>)( |$)|^\s*(codex\/create-proposal-for-client-management-tools-[a-z0-9]+|main)\s*$/m;
   for (const [path, content] of files) assert.doesNotMatch(content, debris, path);
