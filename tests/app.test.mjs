@@ -220,6 +220,10 @@ test('provides an operational Customer Success workspace', () => {
   assert.match(app, /Customer success plan updated/);
   assert.match(app, /Customer interaction saved/);
   assert.match(app, /Customer health updated with evidence/);
+  assert.match(app, /milestones: Array\.isArray\(customer\.milestones\)/);
+  assert.match(app, /interactions: Array\.isArray\(customer\.interactions\)/);
+  assert.match(app, /Create task ·/);
+  assert.match(app, /navigate\('Tasks'\)/);
 });
 
 test('contains no merge markers or leaked conflict branch labels', () => {
