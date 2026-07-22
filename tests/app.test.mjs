@@ -272,3 +272,12 @@ test('provides a gated Supabase account and cloud workspace foundation', () => {
   assert.match(app, /service-role key/);
   assert.match(app, /scheduleSave\(state\)/);
 });
+
+test('provides validated recovery backups and local reliability diagnostics', () => {
+  ['Reliability Center', 'downloadRecovery', 'chooseRecovery', 'recoveryFile', 'runReliabilityCheck', 'clearDiagnostics', 'exportDiagnostics', 'captureDiagnostic', 'validWorkspaceShape', 'wave-recovery'].forEach((marker) => assert.ok(app.includes(marker), marker));
+  assert.match(app, /file\.size > 5000000/);
+  assert.match(app, /payload\.format !== 'wave-recovery'/);
+  assert.match(app, /Object\.keys\(defaults\)/);
+  assert.match(app, /unhandledrejection/);
+  assert.match(app, /DIAGNOSTICS_KEY/);
+});
