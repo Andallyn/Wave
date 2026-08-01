@@ -15,7 +15,7 @@ Wave works in local beta mode without Supabase. Complete these steps when you wa
 3. Run the SQL once.
 4. Confirm that **Row Level Security** is enabled for `workspace_states`.
 
-The policies restrict every signed-in user to the row whose `user_id` matches their authenticated Supabase identity.
+The policies support both the original private user document and shared workspaces. Membership and role checks are enforced in Postgres for workspace documents, invitations, brand profiles, schedules, and notifications.
 
 ## 3. Configure authentication URLs
 
@@ -45,6 +45,19 @@ The URL and anon key are public browser settings. Security comes from the databa
 5. Sign in.
 6. Choose **Import this browser workspace**.
 7. Make one change, reload on another browser, sign in, and confirm it appears.
+8. Complete the guided workspace setup.
+9. In **Settings → Members & roles**, invite a second test email and copy its invitation link.
+10. Sign in with that exact invited email, open the link, and confirm the assigned role limits the available controls.
+11. Create and run a schedule under **Schedules & notifications**, then confirm the new notification opens its destination.
+
+## 6. Enable background schedules on Vercel
+
+Add these server-only environment variables to the Vercel project and redeploy:
+
+- `SUPABASE_SERVICE_ROLE_KEY` — copy the service-role key from Supabase; never place it in `config.js` or browser code.
+- `CRON_SECRET` — create a long random secret. Vercel supplies it to the protected scheduler request.
+
+The existing `SUPABASE_URL` is also required. `vercel.json` invokes `/api/run-schedules` every five minutes. The scheduler processes at most 100 due jobs per run, advances their next-run time, and creates private in-app notifications for workspace members. Confirm the exact cron frequency supported by your Vercel plan before public launch.
 
 ## Rollback
 
@@ -52,4 +65,4 @@ Clear the two values in `config.js` to return Wave to local beta mode. The dashb
 
 ## Current scope
 
-This foundation stores one JSON workspace per user. It provides authentication, RLS isolation, manual import, load, and debounced saving. A later migration can normalize high-volume modules into separate tables when collaboration and reporting requirements justify it.
+This foundation stores one shared workspace document alongside normalized membership, invitation, brand, schedule, and notification records. Existing single-user `workspace_states` rows remain available as a compatibility fallback until a user completes shared workspace setup.
