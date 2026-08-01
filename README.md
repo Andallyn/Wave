@@ -107,6 +107,12 @@ Wave includes an opt-in Supabase adapter for email authentication and private wo
 
 See [docs/CLOUD_SETUP.md](docs/CLOUD_SETUP.md) for setup instructions and [supabase/schema.sql](supabase/schema.sql) for the row-level-security schema. Only the public Supabase URL and anon key belong in `config.js`; never expose a service-role key in browser code.
 
+## Team workspace foundation
+
+Wave now includes shared workspace membership, Owner/Manager/Reviewer/Viewer permissions, email-matched invitation links, guided workspace and brand onboarding, durable schedule records, and actionable in-app notifications. The interface enforces the same operating roles represented by Supabase Row Level Security policies. Run the latest `supabase/schema.sql` before testing these cloud-backed team features; local beta mode continues to provide a safe single-browser preview.
+
+Schedules execute immediately while Wave is open and synchronize to the shared `scheduled_jobs` table. Vercel calls the protected `/api/run-schedules` cron every five minutes so due work can complete while the browser is closed and create an in-app notification for each workspace member. External delivery through email or Slack remains a later connector step.
+
 ## Reliability and recovery
 
 Settings → Reliability provides local health checks, a 20-event browser diagnostic log, complete recovery-backup downloads, validated restoration, and diagnostic-report export. Restore accepts only the versioned Wave recovery format, enforces a 5 MB limit, validates the workspace shape, and copies only known workspace fields.
