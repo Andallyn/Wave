@@ -71,17 +71,34 @@ const defaults = {
   ],
   brandProfile: {
     name: 'Nova Protocol',
+    website: 'https://novaprotocol.xyz',
     voice: 'Clear, optimistic, technically credible',
     audience: 'Web3 builders, ecosystem partners, and community operators',
     promise: 'Open infrastructure that helps communities build and coordinate',
     avoid: 'Hype, guaranteed outcomes, unexplained jargon',
-    terms: 'builders, open infrastructure, community-owned, resilient'
+    terms: 'builders, open infrastructure, community-owned, resilient',
+    objectives: 'Grow qualified builder awareness and improve developer activation',
+    channels: ['LinkedIn', 'X', 'Discord']
   },
+  workspace: { id: 'nova-protocol', name: 'Nova Protocol', type: 'Growth workspace', currentMemberId: 1001 },
   members: [
     { id: 1001, name: 'Alex Morgan', email: 'alex@novaprotocol.xyz', role: 'Owner', initials: 'AM' },
-    { id: 1002, name: 'Maya Chen', email: 'maya@novaprotocol.xyz', role: 'Editor', initials: 'MC' },
+    { id: 1002, name: 'Maya Chen', email: 'maya@novaprotocol.xyz', role: 'Manager', initials: 'MC' },
     { id: 1003, name: 'Jordan Lee', email: 'jordan@novaprotocol.xyz', role: 'Reviewer', initials: 'JL' }
   ],
+  invitations: [
+    { id: 1301, email: 'sam@novaprotocol.xyz', role: 'Reviewer', status: 'Pending', invitedBy: 'Alex Morgan', createdAt: 'Today' }
+  ],
+  schedules: [
+    { id: 1401, name: 'Weekday daily briefing', workflow: 'Daily briefing', cadence: 'Weekdays at 09:00', nextRun: 'Tomorrow, 09:00', status: 'Active', notify: true, lastRun: 'Today, 09:00' },
+    { id: 1402, name: 'Friday campaign summary', workflow: 'Campaign report', cadence: 'Fridays at 16:00', nextRun: 'Friday, 16:00', status: 'Active', notify: true, lastRun: 'Last Friday, 16:00' }
+  ],
+  notifications: [
+    { id: 1501, title: 'Sentiment shift detected', detail: 'Community Guardian · 8 min ago', level: 'urgent', read: false, page: 'Community' },
+    { id: 1502, title: 'Campaign draft is ready', detail: 'Content Strategist · 24 min ago', level: 'standard', read: false, page: 'Content Studio' },
+    { id: 1503, title: 'New partner matched', detail: 'Partnership Scout · 1 hr ago', level: 'standard', read: true, page: 'Partnerships' }
+  ],
+  onboarding: { completed: false, completedSteps: [] },
   audit: [
     { id: 901, action: 'Created campaign drafts', actor: 'Content Strategist', module: 'Content Studio', category: 'Content', evidence: '3 assets linked to Mainnet launch', time: '12m ago' },
     { id: 902, action: 'Escalated wallet connection reports', actor: 'Community Guardian', module: 'Community', category: 'Operations', evidence: '28 Discord messages · negative sentiment', time: '28m ago' },
@@ -102,7 +119,7 @@ const defaults = {
 const STATE_KEY = 'wave-state-v3';
 const DIAGNOSTICS_KEY = 'wave-diagnostics-v1';
 const LAST_SAVE_KEY = 'wave-last-save-v1';
-const WAVE_APP_VERSION = 'beta-0.29';
+const WAVE_APP_VERSION = 'beta-0.30';
 
 function readDiagnostics() {
   try { const value = JSON.parse(window.localStorage.getItem(DIAGNOSTICS_KEY) || '[]'); return Array.isArray(value) ? value.slice(0, 20) : []; }
@@ -117,7 +134,7 @@ function captureDiagnostic(kind, message, detail = '') {
 }
 function validWorkspaceShape(candidate) {
   if (!candidate || typeof candidate !== 'object' || Array.isArray(candidate)) return false;
-  const arrays = ['tasks', 'agents', 'activities', 'content', 'signals', 'leads', 'events', 'customers', 'invoices', 'approvals', 'campaigns', 'audit', 'members', 'connectors', 'goals', 'briefingDismissed', 'briefingSnoozed', 'automations'];
+  const arrays = ['tasks', 'agents', 'activities', 'content', 'signals', 'leads', 'events', 'customers', 'invoices', 'approvals', 'campaigns', 'audit', 'members', 'invitations', 'schedules', 'notifications', 'connectors', 'goals', 'briefingDismissed', 'briefingSnoozed', 'automations'];
   return arrays.every((key) => candidate[key] === undefined || Array.isArray(candidate[key]));
 }
 
@@ -129,7 +146,7 @@ function readStoredState() {
   try {
     const saved = JSON.parse(window.localStorage.getItem(STATE_KEY) || 'null');
     if (!saved || typeof saved !== 'object') return null;
-    const arrays = ['tasks', 'agents', 'activities', 'content', 'signals', 'leads', 'events', 'customers', 'invoices', 'approvals', 'campaigns', 'audit', 'members', 'connectors', 'goals', 'briefingDismissed', 'briefingSnoozed', 'automations'];
+    const arrays = ['tasks', 'agents', 'activities', 'content', 'signals', 'leads', 'events', 'customers', 'invoices', 'approvals', 'campaigns', 'audit', 'members', 'invitations', 'schedules', 'notifications', 'connectors', 'goals', 'briefingDismissed', 'briefingSnoozed', 'automations'];
     return arrays.every((key) => saved[key] === undefined || Array.isArray(saved[key])) ? saved : null;
   } catch (error) {
     console.warn('Wave could not read saved workspace data. Starting with demo data.', error);
@@ -159,6 +176,42 @@ state.leads = state.leads.map((lead) => {
   const seed = defaults.leads.find((item) => item.id === lead.id) || {};
   return { ...clone(seed), ...lead, fitReasons: Array.isArray(lead.fitReasons) ? lead.fitReasons : clone(seed.fitReasons || []), interactions: Array.isArray(lead.interactions) ? lead.interactions : clone(seed.interactions || []) };
 });
+const rolePermissions = {
+  Owner: ['workspace.manage', 'members.invite', 'members.manage', 'brand.manage', 'work.manage', 'approvals.decide', 'schedules.manage'],
+  Manager: ['members.invite', 'brand.manage', 'work.manage', 'approvals.decide', 'schedules.manage'],
+  Reviewer: ['approvals.decide'],
+  Viewer: []
+};
+const currentMember = () => state.members.find((member) => member.id === state.workspace.currentMemberId) || state.members[0];
+const can = (permission) => rolePermissions[currentMember()?.role]?.includes(permission) || false;
+function requirePermission(permission, action) {
+  if (can(permission)) return true;
+  toast(`${currentMember()?.role || 'Viewer'} access cannot ${action}. Ask a workspace owner to change your role.`);
+  return false;
+}
+function initialsFor(email) {
+  return String(email || '?').split('@')[0].split(/[._-]/).map((part) => part[0] || '').join('').slice(0, 2).toUpperCase();
+}
+function addNotification(title, detail, page = 'Command Center', level = 'standard') {
+  state.notifications.unshift({ id: Date.now(), title, detail, page, level, read: false });
+  state.notifications = state.notifications.slice(0, 50);
+}
+function mutationIntent(control) {
+  const signal = [control.id, ...[...control.attributes].filter((attribute) => attribute.name.startsWith('data-')).map((attribute) => attribute.name)].filter(Boolean).join(' ').toLowerCase();
+  return /(open-task|create|generate|approve|reject|schedule|reschedule|delete|complete|resolve|dismiss|snooze|toggle|run-|add-|update|match|payment|save|reset|import|restore)/.test(signal);
+}
+document.addEventListener('click', (event) => {
+  const control = event.target.closest('button'); if (!control || !mutationIntent(control)) return;
+  const role = currentMember()?.role; if (role === 'Owner' || role === 'Manager') return;
+  const approvalAction = [...control.attributes].some((attribute) => /^data-(approve|reject)/.test(attribute.name));
+  if (role === 'Reviewer' && approvalAction) return;
+  event.preventDefault(); event.stopImmediatePropagation(); toast(`${role || 'Viewer'} access is read-only for this action.`);
+}, true);
+document.addEventListener('submit', (event) => {
+  const protectedForms = ['taskForm', 'contentForm', 'brandMemoryForm', 'workspaceForm', 'inviteMemberForm', 'scheduleForm', 'goalForm', 'automationForm', 'customerForm', 'invoiceForm'];
+  if (!protectedForms.includes(event.target.id) || can('work.manage')) return;
+  event.preventDefault(); event.stopImmediatePropagation(); toast(`${currentMember()?.role || 'Viewer'} access cannot submit workspace changes.`);
+}, true);
 let currentFilter = 'All';
 let currentPage = 'Command Center';
 let currentContentView = 'Pipeline';
@@ -167,7 +220,7 @@ let currentApprovalFilter = 'Pending';
 let currentCampaignId = null;
 let currentAuditFilter = 'All';
 let currentAuditQuery = '';
-let currentSettingsTab = 'Agents';
+let currentSettingsTab = 'Setup guide';
 let cloudStatus = { mode: 'local', configured: false, authenticated: false, email: '', message: 'Local beta mode' };
 let currentAnalyticsRange = '30';
 let currentAnalyticsCampaign = 'All';
@@ -424,13 +477,23 @@ const views = {
       <section class="analytics-bottom"><article class="module-card"><div class="module-card-head"><div><h3>Channel performance</h3><p>Outcomes and engagement by connected channel.</p></div></div><div class="performance-head"><span>Channel</span><span>Outcomes</span><span>Engagement</span><span>Trend</span></div>${snapshot.channels.map((channel) => `<div class="performance-row"><span><b>${channel.name}</b><small>${channel.source}</small></span><strong>${channel.outcomes}</strong><span>${channel.engagement}</span><em class="positive-text">${channel.trend}</em></div>`).join('')}</article><article class="module-card"><div class="module-card-head"><div><h3>Agent contribution</h3><p>Approved work by specialist.</p></div></div><div class="contribution-list">${state.agents.map((agent, i) => `<div><span class="agent-orb ${agent.color}">${agent.icon}</span><p><b>${agent.name}</b><small>${snapshot.contributions[i]}% of outcomes</small></p><div><i style="width:${snapshot.contributions[i] * 2}%"></i></div></div>`).join('')}</div></article></section>`;
   },
   Settings() {
-    const tabs = ['Agents', 'Brand memory', 'Members & roles', 'Account & cloud', 'Reliability', 'Beta & data'];
-    const rolePermissions = { Owner: 'Full workspace, billing, members, and approvals', Editor: 'Create and edit work; submit approvals', Reviewer: 'Review and decide assigned approvals', Viewer: 'Read-only workspace access' };
+    const tabs = ['Setup guide', 'Agents', 'Brand memory', 'Members & roles', 'Schedules & notifications', 'Account & cloud', 'Reliability', 'Beta & data'];
+    const roleDescriptions = { Owner: 'Full workspace, billing, members, and approvals', Manager: 'Manage work, brand, schedules, invitations, and approvals', Reviewer: 'Review and decide assigned approvals', Viewer: 'Read-only workspace access' };
     const nav = `<nav class="settings-nav">${tabs.map((tab) => `<button class="${currentSettingsTab === tab ? 'active' : ''}" data-settings-tab="${tab}">${tab}</button>`).join('')}<button data-page-link="Audit Trail">Audit Trail</button></nav>`;
     let body = '';
+    if (currentSettingsTab === 'Setup guide') {
+      const steps = [
+        { key: 'workspace', title: 'Name your workspace', detail: state.workspace.name, target: 'Members & roles' },
+        { key: 'brand', title: 'Complete brand memory', detail: `${state.brandProfile.name} · ${state.brandProfile.voice}`, target: 'Brand memory' },
+        { key: 'team', title: 'Invite your team', detail: `${state.members.length} members · ${state.invitations.filter((item) => item.status === 'Pending').length} pending`, target: 'Members & roles' },
+        { key: 'schedule', title: 'Set an operating rhythm', detail: `${state.schedules.filter((item) => item.status === 'Active').length} active schedules`, target: 'Schedules & notifications' }
+      ];
+      body = `<article class="module-card settings-main onboarding-panel"><div class="module-card-head"><div><h3>Workspace setup</h3><p>Turn the demo into a workspace your team can operate together.</p></div><strong>${state.onboarding.completedSteps.length}/${steps.length}</strong></div><div class="onboarding-progress"><i style="width:${Math.round((state.onboarding.completedSteps.length / steps.length) * 100)}%"></i></div><div class="setup-steps">${steps.map((step, index) => `<button data-setup-target="${step.target}" class="${state.onboarding.completedSteps.includes(step.key) ? 'complete' : ''}"><span>${state.onboarding.completedSteps.includes(step.key) ? '✓' : index + 1}</span><span><b>${step.title}</b><small>${escapeHtml(step.detail)}</small></span><em>Open →</em></button>`).join('')}</div><button class="secondary-btn" id="restartOnboarding">Open guided setup</button></article>`;
+    }
     if (currentSettingsTab === 'Agents') body = `<article class="module-card settings-main"><div class="module-card-head"><div><h3>Agent controls</h3><p>Pause specialists and review their current operating boundary.</p></div></div><div id="agentList"></div><div class="settings-section"><h3>Approval policy</h3><div class="policy-row"><span><b>External publishing</b><small>Content always requires a human reviewer.</small></span><strong>Required</strong></div><div class="policy-row"><span><b>First partner outreach</b><small>New contacts cannot be messaged autonomously.</small></span><strong>Required</strong></div><div class="policy-row"><span><b>Payment instructions</b><small>Requires two authorized reviewers.</small></span><strong>Dual approval</strong></div></div><button class="reset-btn" id="resetDemo">Reset demo workspace</button></article>`;
-    if (currentSettingsTab === 'Brand memory') body = `<article class="module-card settings-main"><div class="module-card-head"><div><h3>Brand memory</h3><p>The shared context Wave uses when generating content and recommendations.</p></div><span class="live-chip"><i></i>Used by agents</span></div><form id="brandMemoryForm" class="brand-form"><label>Brand name<input name="name" value="${escapeHtml(state.brandProfile.name)}" required></label><label>Voice and tone<textarea name="voice" rows="3" required>${escapeHtml(state.brandProfile.voice)}</textarea></label><label>Primary audience<textarea name="audience" rows="3" required>${escapeHtml(state.brandProfile.audience)}</textarea></label><label>Core promise<textarea name="promise" rows="3" required>${escapeHtml(state.brandProfile.promise)}</textarea></label><label>Words and claims to avoid<textarea name="avoid" rows="3">${escapeHtml(state.brandProfile.avoid)}</textarea></label><label>Preferred language<textarea name="terms" rows="3">${escapeHtml(state.brandProfile.terms)}</textarea></label><div class="brand-memory-foot"><small>Changes are recorded in Audit Trail and apply to future generated drafts.</small><button class="primary-btn" type="submit">Save brand memory</button></div></form></article>`;
-    if (currentSettingsTab === 'Members & roles') body = `<article class="module-card settings-main"><div class="module-card-head"><div><h3>Members & roles</h3><p>Make responsibility and workspace access explicit.</p></div><span class="safe-chip">${state.members.length} members</span></div><div class="role-guide">${Object.entries(rolePermissions).map(([role, permissions]) => `<div><b>${role}</b><small>${permissions}</small></div>`).join('')}</div><div class="member-list">${state.members.map((member) => `<div class="member-row"><span class="avatar">${escapeHtml(member.initials)}</span><span><b>${escapeHtml(member.name)}</b><small>${escapeHtml(member.email)}</small></span><select data-member-role="${member.id}" aria-label="Role for ${escapeHtml(member.name)}">${Object.keys(rolePermissions).map((role) => `<option ${member.role === role ? 'selected' : ''}>${role}</option>`).join('')}</select><small>${escapeHtml(rolePermissions[member.role] || '')}</small></div>`).join('')}</div></article>`;
+    if (currentSettingsTab === 'Brand memory') body = `<article class="module-card settings-main"><div class="module-card-head"><div><h3>Brand memory</h3><p>The shared context Wave uses when generating content and recommendations.</p></div><span class="live-chip"><i></i>Used by agents</span></div><form id="brandMemoryForm" class="brand-form"><label>Brand name<input name="name" value="${escapeHtml(state.brandProfile.name)}" required ${can('brand.manage') ? '' : 'disabled'}></label><label>Website<input name="website" type="url" value="${escapeHtml(state.brandProfile.website || '')}" ${can('brand.manage') ? '' : 'disabled'}></label><label>Voice and tone<textarea name="voice" rows="3" required ${can('brand.manage') ? '' : 'disabled'}>${escapeHtml(state.brandProfile.voice)}</textarea></label><label>Primary audience<textarea name="audience" rows="3" required ${can('brand.manage') ? '' : 'disabled'}>${escapeHtml(state.brandProfile.audience)}</textarea></label><label>Core promise<textarea name="promise" rows="3" required ${can('brand.manage') ? '' : 'disabled'}>${escapeHtml(state.brandProfile.promise)}</textarea></label><label>Business objectives<textarea name="objectives" rows="3" ${can('brand.manage') ? '' : 'disabled'}>${escapeHtml(state.brandProfile.objectives || '')}</textarea></label><label>Words and claims to avoid<textarea name="avoid" rows="3" ${can('brand.manage') ? '' : 'disabled'}>${escapeHtml(state.brandProfile.avoid)}</textarea></label><label>Preferred language<textarea name="terms" rows="3" ${can('brand.manage') ? '' : 'disabled'}>${escapeHtml(state.brandProfile.terms)}</textarea></label><fieldset><legend>Primary channels</legend><div class="channel-options">${['LinkedIn', 'X', 'Discord', 'Telegram'].map((channel) => `<label><input type="checkbox" name="channels" value="${channel}" ${state.brandProfile.channels?.includes(channel) ? 'checked' : ''} ${can('brand.manage') ? '' : 'disabled'}>${channel}</label>`).join('')}</div></fieldset><div class="brand-memory-foot"><small>Changes are recorded in Audit Trail and apply to future generated drafts.</small><button class="primary-btn" type="submit" ${can('brand.manage') ? '' : 'disabled'}>Save brand memory</button></div></form></article>`;
+    if (currentSettingsTab === 'Members & roles') body = `<article class="module-card settings-main"><div class="module-card-head"><div><h3>${escapeHtml(state.workspace.name)} team</h3><p>Invite collaborators and enforce responsibility with workspace roles.</p></div><span class="safe-chip">${state.members.length} members</span></div><form id="workspaceForm" class="workspace-form"><label>Workspace name<input name="name" value="${escapeHtml(state.workspace.name)}" required ${can('workspace.manage') ? '' : 'disabled'}></label><label>Workspace type<select name="type" ${can('workspace.manage') ? '' : 'disabled'}>${['Growth workspace', 'Agency workspace', 'Community workspace'].map((type) => `<option ${state.workspace.type === type ? 'selected' : ''}>${type}</option>`).join('')}</select></label><button class="secondary-btn" ${can('workspace.manage') ? '' : 'disabled'}>Save workspace</button></form><div class="role-guide">${Object.entries(roleDescriptions).map(([role, permissions]) => `<div><b>${role}</b><small>${permissions}</small></div>`).join('')}</div><form id="inviteMemberForm" class="invite-form"><label>Email<input name="email" type="email" placeholder="teammate@company.com" required ${can('members.invite') ? '' : 'disabled'}></label><label>Role<select name="role" ${can('members.invite') ? '' : 'disabled'}>${Object.keys(roleDescriptions).filter((role) => role !== 'Owner').map((role) => `<option>${role}</option>`).join('')}</select></label><button class="primary-btn" ${can('members.invite') ? '' : 'disabled'}>Send invitation</button></form><div class="member-list">${state.members.map((member) => `<div class="member-row"><span class="avatar">${escapeHtml(member.initials)}</span><span><b>${escapeHtml(member.name)}${member.id === state.workspace.currentMemberId ? ' · You' : ''}</b><small>${escapeHtml(member.email)}</small></span><select data-member-role="${member.id}" aria-label="Role for ${escapeHtml(member.name)}" ${can('members.manage') && member.id !== state.workspace.currentMemberId ? '' : 'disabled'}>${Object.keys(roleDescriptions).map((role) => `<option ${member.role === role ? 'selected' : ''}>${role}</option>`).join('')}</select><small>${escapeHtml(roleDescriptions[member.role] || '')}</small></div>`).join('')}</div>${state.invitations.length ? `<div class="pending-invites"><h3>Pending invitations</h3>${state.invitations.map((invite) => `<div><span class="avatar pending">${initialsFor(invite.email)}</span><span><b>${escapeHtml(invite.email)}</b><small>${escapeHtml(invite.role)} · Invited ${escapeHtml(invite.createdAt)}</small></span><em>${escapeHtml(invite.status)}</em>${invite.inviteUrl ? `<button class="text-btn" data-copy-invite="${invite.id}">Copy link</button>` : ''}<button class="text-btn" data-cancel-invite="${invite.id}" ${can('members.invite') ? '' : 'disabled'}>Cancel</button></div>`).join('')}</div>` : ''}</article>`;
+    if (currentSettingsTab === 'Schedules & notifications') body = `<article class="module-card settings-main"><div class="module-card-head"><div><h3>Operating schedules</h3><p>Plan recurring Wave work and notify the team when it runs or needs attention.</p></div><span class="safe-chip">${state.schedules.filter((item) => item.status === 'Active').length} active</span></div><form id="scheduleForm" class="schedule-form"><label>Schedule name<input name="name" required placeholder="Monday community digest" ${can('schedules.manage') ? '' : 'disabled'}></label><label>Workflow<select name="workflow" ${can('schedules.manage') ? '' : 'disabled'}><option>Daily briefing</option><option>Community digest</option><option>Campaign report</option><option>Partnership follow-up</option></select></label><label>Cadence<select name="cadence" ${can('schedules.manage') ? '' : 'disabled'}><option>Every day at 09:00</option><option>Weekdays at 09:00</option><option>Mondays at 10:00</option><option>Fridays at 16:00</option></select></label><label class="notify-option"><input name="notify" type="checkbox" checked ${can('schedules.manage') ? '' : 'disabled'}> Notify workspace members</label><button class="primary-btn" ${can('schedules.manage') ? '' : 'disabled'}>Create schedule</button></form><div class="schedule-list">${state.schedules.map((schedule) => `<article><span class="schedule-status ${schedule.status.toLowerCase()}"></span><div><b>${escapeHtml(schedule.name)}</b><small>${escapeHtml(schedule.workflow)} · ${escapeHtml(schedule.cadence)}</small><small>Next ${escapeHtml(schedule.nextRun)} · Last ${escapeHtml(schedule.lastRun)}</small></div><em class="status-pill ${schedule.status === 'Active' ? 'scheduled' : ''}">${schedule.status}</em><button class="secondary-btn compact" data-run-schedule="${schedule.id}" ${can('schedules.manage') ? '' : 'disabled'}>Run now</button><button class="text-btn" data-toggle-schedule="${schedule.id}" ${can('schedules.manage') ? '' : 'disabled'}>${schedule.status === 'Active' ? 'Pause' : 'Activate'}</button></article>`).join('')}</div><div class="notification-preferences"><h3>Notification behavior</h3><p>Wave creates an in-app notification after scheduled runs and when an approval, risk, or connector needs attention. Email and Slack delivery can be connected later without changing these schedules.</p><button class="secondary-btn" id="markAllNotificationsRead">Mark all notifications read</button></div></article>`;
     if (currentSettingsTab === 'Account & cloud') body = `<article class="module-card settings-main cloud-account-panel"><div class="module-card-head"><div><h3>Account & cloud workspace</h3><p>Move from one-browser demo storage to a private account-backed workspace.</p></div><span class="cloud-status ${cloudStatus.authenticated ? 'connected' : cloudStatus.configured ? 'ready' : 'local'}">${cloudStatus.authenticated ? 'Cloud connected' : cloudStatus.configured ? 'Ready to sign in' : 'Local beta mode'}</span></div>${!cloudStatus.configured ? `<div class="cloud-setup"><h3>Cloud connection not configured</h3><p>Wave is safely continuing in local beta mode. Connect a Supabase project using the repository setup guide to enable real accounts and private cloud sync.</p><ol><li>Create a Supabase project.</li><li>Run <code>supabase/schema.sql</code> in its SQL editor.</li><li>Add the public project URL and anon key to <code>config.js</code>.</li><li>Redeploy and return here to create an account.</li></ol><a class="primary-btn" href="https://github.com/Andallyn/Wave/blob/main/docs/CLOUD_SETUP.md" target="_blank" rel="noopener">Open setup guide</a></div>` : cloudStatus.authenticated ? `<div class="cloud-connected"><span class="avatar">${escapeHtml((cloudStatus.email || 'U').slice(0, 2).toUpperCase())}</span><div><b>${escapeHtml(cloudStatus.email)}</b><small>Authenticated with Supabase · private workspace policy enabled</small></div></div><div class="cloud-actions"><button class="primary-btn" id="saveCloudNow" type="button">Save to cloud now</button><button class="secondary-btn" id="importLocalCloud" type="button">Import this browser workspace</button><button class="reset-btn" id="cloudSignOut" type="button">Sign out</button></div><div class="beta-notice"><b>Importing replaces your cloud workspace.</b><p>Your current browser data remains available locally. Wave never uses a Supabase service-role key in the browser.</p></div>` : `<div class="auth-grid"><form id="cloudSignInForm" class="cloud-auth-form"><h3>Sign in</h3><p>Open your private Wave workspace.</p><label>Email<input name="email" type="email" autocomplete="email" required></label><label>Password<input name="password" type="password" autocomplete="current-password" minlength="8" required></label><button class="primary-btn" type="submit">Sign in</button></form><form id="cloudSignUpForm" class="cloud-auth-form"><h3>Create beta account</h3><p>Your Supabase project may require email confirmation.</p><label>Email<input name="email" type="email" autocomplete="email" required></label><label>Password<input name="password" type="password" autocomplete="new-password" minlength="8" required></label><button class="secondary-btn" type="submit">Create account</button></form></div>`}<p class="cloud-message" role="status">${escapeHtml(cloudStatus.message || '')}</p></article>`;
     if (currentSettingsTab === 'Reliability') {
       const diagnostics = readDiagnostics(); const stateBytes = new Blob([JSON.stringify(state)]).size; let lastSaved = 'Not saved in this browser yet';
@@ -442,6 +505,32 @@ const views = {
       <section class="settings-layout">${nav}${body}</section>`;
   }
 };
+
+function runSchedule(id, automatic = false) {
+  if (!automatic && !requirePermission('schedules.manage', 'run schedules')) return;
+  const schedule = state.schedules.find((item) => item.id === id); if (!schedule || schedule.status !== 'Active') return;
+  const now = new Date(); schedule.lastRun = 'just now'; schedule.nextRun = schedule.cadence;
+  const title = `${schedule.workflow} completed`;
+  if (schedule.notify) addNotification(title, `${schedule.name} · ${now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`, schedule.workflow === 'Daily briefing' ? 'Briefing' : schedule.workflow === 'Campaign report' ? 'Analytics' : 'Command Center');
+  recordActivity('↻', `${automatic ? 'Scheduled' : 'Manual'} run completed: ${schedule.name}`, { actor: 'Operations Coordinator', module: 'Automation Rules', category: 'Operations', evidence: schedule.cadence }); persist();
+  if (!automatic && currentPage === 'Settings') navigate('Settings');
+  if (!automatic) toast(`${schedule.name} completed. Notification created.`);
+}
+
+function renderNotifications() {
+  const panel = $('#notificationPanel'); if (!panel) return;
+  const unread = state.notifications.filter((item) => !item.read).length;
+  $('#notificationButton')?.classList.toggle('has-unread', unread > 0);
+  panel.innerHTML = `<div><h3>Notifications${unread ? ` · ${unread} new` : ''}</h3><button id="closeNotifications" aria-label="Close notifications">×</button></div>${state.notifications.slice(0, 12).map((item) => `<button class="notification-item ${item.read ? '' : 'unread'}" data-open-notification="${item.id}"><i class="${item.level === 'urgent' ? 'urgent' : ''}"></i><span><b>${escapeHtml(item.title)}</b><small>${escapeHtml(item.detail)}</small></span></button>`).join('') || '<p class="empty-state">You are all caught up.</p>'}<button class="notification-footer" id="readAllNotifications">Mark all as read</button>`;
+  $('#closeNotifications')?.addEventListener('click', () => panel.classList.remove('show'));
+  $('#readAllNotifications')?.addEventListener('click', () => { const ids = state.notifications.filter((item) => !item.read).map((item) => item.id); state.notifications.forEach((item) => { item.read = true; }); window.WaveCloud?.markNotificationsRead?.(ids).catch((error) => captureDiagnostic('Notification sync error', error.message)); persist(); renderNotifications(); });
+  $$('[data-open-notification]').forEach((button) => button.addEventListener('click', () => { const item = state.notifications.find((notification) => String(notification.id) === button.dataset.openNotification); if (!item) return; item.read = true; window.WaveCloud?.markNotificationsRead?.([item.id]).catch((error) => captureDiagnostic('Notification sync error', error.message)); persist(); panel.classList.remove('show'); navigate(item.page); }));
+}
+
+function processDueSchedules() {
+  const today = new Date().toISOString().slice(0, 10);
+  state.schedules.filter((item) => item.status === 'Active' && item.dueDate && item.dueDate <= today && item.lastAutomaticRun !== today).forEach((schedule) => { schedule.lastAutomaticRun = today; runSchedule(schedule.id, true); });
+}
 
 
 
@@ -567,15 +656,60 @@ function attachModuleEvents(page) {
   $$('[data-run-agent]').forEach((button) => button.addEventListener('click', () => { const agent = state.agents[Number(button.dataset.runAgent)]; if (!agent || !agent.active) return; agent.runs += 1; agent.budgetUsed = Math.min(agent.budgetLimit, agent.budgetUsed + 1); agent.lastRun = 'just now'; agent.status = 'Run completed successfully'; recordActivity(agent.icon, `Ran ${agent.name} manually`, { actor: 'Alex Morgan', module: 'Agent Operations', category: 'Operations', evidence: `1 workload unit used · ${agent.autonomy} autonomy` }); navigate('Agent Operations'); toast(`${agent.name} run completed.`); }));
   $$('[data-sync-connector]').forEach((button) => button.addEventListener('click', () => { const connector = state.connectors.find((item) => item.id === button.dataset.syncConnector); if (!connector) return; connector.status = 'Healthy'; connector.lastSync = 'just now'; connector.records += Math.ceil(Math.random() * 5); recordActivity('↗', `Synced ${connector.name} connector`, { actor: 'Alex Morgan', module: 'Agent Operations', category: 'Operations', evidence: `${connector.records} records available · connector healthy` }); navigate('Agent Operations'); toast(`${connector.name} sync complete.`); }));
   $$('[data-settings-tab]').forEach((button) => button.addEventListener('click', () => { currentSettingsTab = button.dataset.settingsTab; navigate('Settings'); }));
+  $$('[data-setup-target]').forEach((button) => button.addEventListener('click', () => { currentSettingsTab = button.dataset.setupTarget; navigate('Settings'); }));
+  $('#restartOnboarding')?.addEventListener('click', () => {
+    const dialog = $('#betaWelcomeDialog');
+    if (typeof dialog.showModal === 'function') dialog.showModal(); else dialog.setAttribute('open', '');
+  });
+  $('#workspaceForm')?.addEventListener('submit', (event) => {
+    event.preventDefault(); if (!requirePermission('workspace.manage', 'change workspace settings')) return;
+    const data = new FormData(event.currentTarget); state.workspace.name = String(data.get('name') || '').trim(); state.workspace.type = String(data.get('type') || 'Growth workspace');
+    if (!state.onboarding.completedSteps.includes('workspace')) state.onboarding.completedSteps.push('workspace');
+    recordActivity('W', `Updated workspace: ${state.workspace.name}`, { actor: currentMember().name, module: 'Settings', category: 'Decision', evidence: state.workspace.type }); persist(); navigate('Settings'); toast('Workspace settings saved.');
+  });
+  $('#inviteMemberForm')?.addEventListener('submit', async (event) => {
+    event.preventDefault(); if (!requirePermission('members.invite', 'invite workspace members')) return;
+    const data = new FormData(event.currentTarget); const email = String(data.get('email') || '').trim().toLowerCase(); const role = String(data.get('role') || 'Viewer');
+    if (state.members.some((member) => member.email.toLowerCase() === email) || state.invitations.some((invite) => invite.email.toLowerCase() === email && invite.status === 'Pending')) { toast('That person is already a member or has a pending invitation.'); return; }
+    let cloudInvite = null;
+    if (cloudStatus.authenticated && window.WaveCloud?.createInvitation) {
+      try { cloudInvite = await window.WaveCloud.createInvitation(email, role); }
+      catch (error) { toast(error.message || 'Cloud invitation could not be created.'); return; }
+    }
+    state.invitations.unshift({ id: cloudInvite?.id || Date.now(), email, role, status: 'Pending', invitedBy: currentMember().name, createdAt: 'just now', inviteUrl: cloudInvite?.inviteUrl || '' });
+    if (!state.onboarding.completedSteps.includes('team')) state.onboarding.completedSteps.push('team');
+    addNotification('Workspace invitation prepared', `${email} · ${role}`, 'Settings'); recordActivity('♙', `Invited ${email} as ${role}`, { actor: currentMember().name, module: 'Settings', category: 'Decision', evidence: 'Pending invitation' }); persist(); navigate('Settings'); toast(`Invitation prepared for ${email}.`);
+  });
+  $$('[data-cancel-invite]').forEach((button) => button.addEventListener('click', () => {
+    if (!requirePermission('members.invite', 'cancel invitations')) return; const invitation = state.invitations.find((item) => item.id === Number(button.dataset.cancelInvite)); if (!invitation) return;
+    state.invitations = state.invitations.filter((item) => item.id !== invitation.id); recordActivity('♙', `Cancelled invitation for ${invitation.email}`, { actor: currentMember().name, module: 'Settings', category: 'Decision' }); persist(); navigate('Settings'); toast('Invitation cancelled.');
+  }));
+  $$('[data-copy-invite]').forEach((button) => button.addEventListener('click', async () => {
+    const invitation = state.invitations.find((item) => String(item.id) === button.dataset.copyInvite); if (!invitation?.inviteUrl) return;
+    try { await navigator.clipboard.writeText(invitation.inviteUrl); toast('Invitation link copied.'); }
+    catch (error) { window.prompt('Copy this invitation link:', invitation.inviteUrl); }
+  }));
   $('#brandMemoryForm')?.addEventListener('submit', (event) => {
-    event.preventDefault(); const data = new FormData(event.currentTarget); const previous = state.brandProfile.name;
-    state.brandProfile = Object.fromEntries(['name', 'voice', 'audience', 'promise', 'avoid', 'terms'].map((key) => [key, String(data.get(key) || '').trim()]));
-    recordActivity('◈', `Updated brand memory for ${state.brandProfile.name}`, { actor: 'Alex Morgan', module: 'Settings', category: 'Operations', evidence: `Brand profile updated · previous name: ${previous}` }); navigate('Settings'); toast('Brand memory saved and shared with Wave agents.');
+    event.preventDefault(); if (!requirePermission('brand.manage', 'change brand memory')) return; const data = new FormData(event.currentTarget); const previous = state.brandProfile.name;
+    state.brandProfile = { ...state.brandProfile, ...Object.fromEntries(['name', 'website', 'voice', 'audience', 'promise', 'objectives', 'avoid', 'terms'].map((key) => [key, String(data.get(key) || '').trim()])), channels: data.getAll('channels').map(String) };
+    if (!state.onboarding.completedSteps.includes('brand')) state.onboarding.completedSteps.push('brand');
+    recordActivity('◈', `Updated brand memory for ${state.brandProfile.name}`, { actor: currentMember().name, module: 'Settings', category: 'Operations', evidence: `Brand profile updated · previous name: ${previous}` }); persist(); navigate('Settings'); toast('Brand memory saved and shared with Wave agents.');
   });
   $$('[data-member-role]').forEach((select) => select.addEventListener('change', () => {
-    const member = state.members.find((item) => item.id === Number(select.dataset.memberRole)); if (!member) return; const previous = member.role; member.role = select.value;
-    recordActivity('♙', `Changed ${member.name}'s role to ${member.role}`, { actor: 'Alex Morgan', module: 'Settings', category: 'Decision', evidence: `Access changed from ${previous} to ${member.role}` }); navigate('Settings'); toast(`${member.name} is now a ${member.role}.`);
+    if (!requirePermission('members.manage', 'change member roles')) { navigate('Settings'); return; } const member = state.members.find((item) => item.id === Number(select.dataset.memberRole)); if (!member || member.id === state.workspace.currentMemberId) return; const previous = member.role; member.role = select.value;
+    addNotification('Workspace role changed', `${member.name} is now ${member.role}`, 'Settings'); recordActivity('♙', `Changed ${member.name}'s role to ${member.role}`, { actor: currentMember().name, module: 'Settings', category: 'Decision', evidence: `Access changed from ${previous} to ${member.role}` }); persist(); navigate('Settings'); toast(`${member.name} is now a ${member.role}.`);
   }));
+  $('#scheduleForm')?.addEventListener('submit', (event) => {
+    event.preventDefault(); if (!requirePermission('schedules.manage', 'create schedules')) return; const data = new FormData(event.currentTarget);
+    state.schedules.unshift({ id: Date.now(), name: String(data.get('name') || '').trim(), workflow: String(data.get('workflow')), cadence: String(data.get('cadence')), nextRun: String(data.get('cadence')), status: 'Active', notify: data.get('notify') === 'on', lastRun: 'Not run yet' });
+    if (!state.onboarding.completedSteps.includes('schedule')) state.onboarding.completedSteps.push('schedule');
+    recordActivity('□', `Created schedule: ${data.get('name')}`, { actor: currentMember().name, module: 'Automation Rules', category: 'Operations', evidence: String(data.get('cadence')) }); persist(); navigate('Settings'); toast('Schedule created and activated.');
+  });
+  $$('[data-run-schedule]').forEach((button) => button.addEventListener('click', () => runSchedule(Number(button.dataset.runSchedule))));
+  $$('[data-toggle-schedule]').forEach((button) => button.addEventListener('click', () => {
+    if (!requirePermission('schedules.manage', 'change schedules')) return; const schedule = state.schedules.find((item) => item.id === Number(button.dataset.toggleSchedule)); if (!schedule) return; schedule.status = schedule.status === 'Active' ? 'Paused' : 'Active'; persist(); navigate('Settings'); toast(`${schedule.name} ${schedule.status.toLowerCase()}.`);
+  }));
+  $('#markAllNotificationsRead')?.addEventListener('click', () => { const ids = state.notifications.filter((item) => !item.read).map((item) => item.id); state.notifications.forEach((item) => { item.read = true; }); window.WaveCloud?.markNotificationsRead?.(ids).catch((error) => captureDiagnostic('Notification sync error', error.message)); persist(); renderNotifications(); toast('All notifications marked as read.'); });
   $('#downloadRecovery')?.addEventListener('click', () => {
     const payload = { format: 'wave-recovery', version: 1, appVersion: WAVE_APP_VERSION, createdAt: new Date().toISOString(), workspace: state };
     const link = document.createElement('a'); link.href = URL.createObjectURL(new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' })); link.download = `wave-recovery-${new Date().toISOString().slice(0, 10)}.json`; link.click(); URL.revokeObjectURL(link.href); captureDiagnostic('Backup', 'Recovery backup downloaded'); toast('Recovery backup downloaded. Store it securely.');
@@ -813,13 +947,12 @@ function openCommands() { if (typeof commandDialog.showModal === 'function') com
 $('#searchTrigger').addEventListener('click', openCommands);
 $('#commandInput').addEventListener('input', (event) => renderCommands(event.target.value));
 document.addEventListener('keydown', (event) => { if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') { event.preventDefault(); openCommands(); } });
-$('#notificationButton').addEventListener('click', () => $('#notificationPanel').classList.toggle('show'));
-$('#closeNotifications').addEventListener('click', () => $('#notificationPanel').classList.remove('show'));
+$('#notificationButton').addEventListener('click', () => { renderNotifications(); $('#notificationPanel').classList.toggle('show'); });
 $('#mobileMenu').addEventListener('click', () => $('#sidebar').classList.toggle('open'));
 
 // Every visible control should acknowledge a click. Feature-specific handlers above
 // stop here via data attributes/IDs; these handlers cover secondary prototype controls.
-$('#workspaceButton').addEventListener('click', (event) => acknowledge(event.currentTarget, 'Nova Protocol is the active demo workspace.'));
+$('#workspaceButton').addEventListener('click', () => { currentSettingsTab = 'Members & roles'; navigate('Settings'); });
 document.addEventListener('click', (event) => {
   const button = event.target.closest('button');
   if (!button) return;
@@ -846,16 +979,40 @@ document.addEventListener('click', (event) => {
 });
 
 const betaWelcomeDialog = $('#betaWelcomeDialog');
-$('#betaWelcomeForm')?.addEventListener('submit', (event) => {
+$('#betaWelcomeForm')?.addEventListener('submit', async (event) => {
   event.preventDefault();
+  const data = new FormData(event.currentTarget);
+  state.workspace.name = String(data.get('workspaceName') || state.workspace.name).trim();
+  state.brandProfile.name = String(data.get('brandName') || state.brandProfile.name).trim();
+  state.brandProfile.audience = String(data.get('audience') || state.brandProfile.audience).trim();
+  state.brandProfile.voice = String(data.get('voice') || state.brandProfile.voice).trim();
+  state.brandProfile.objectives = String(data.get('objectives') || state.brandProfile.objectives).trim();
+  const member = currentMember(); if (member) member.role = String(data.get('ownerRole') || member.role);
+  state.onboarding.completed = true; state.onboarding.completedSteps = ['workspace', 'brand'];
+  if (data.get('dailyBriefing') === 'on') {
+    const existing = state.schedules.find((item) => item.workflow === 'Daily briefing');
+    if (!existing) state.schedules.unshift({ id: Date.now(), name: 'Weekday daily briefing', workflow: 'Daily briefing', cadence: 'Weekdays at 09:00', nextRun: 'Tomorrow, 09:00', status: 'Active', notify: true, lastRun: 'Not run yet' });
+    state.onboarding.completedSteps.push('schedule');
+  }
+  recordActivity('W', `Completed workspace setup for ${state.workspace.name}`, { actor: member?.name || 'Workspace owner', module: 'Settings', category: 'Operations', evidence: `${state.brandProfile.name} · ${state.brandProfile.objectives}` });
+  persist();
+  if (cloudStatus.authenticated && window.WaveCloud?.bootstrapWorkspace && !window.WaveCloud.workspaceId()) {
+    try { const workspaceId = await window.WaveCloud.bootstrapWorkspace(state.workspace.name, state.workspace.type); state.workspace.id = workspaceId; await window.WaveCloud.saveWorkspace(state); }
+    catch (error) { captureDiagnostic('Cloud setup error', error.message, 'Workspace remains available locally'); toast('Workspace saved locally; cloud setup still needs attention.'); }
+  }
   try { window.localStorage.setItem('wave-beta-onboarding-v1', 'accepted'); } catch (error) { console.warn(error); }
   if (typeof betaWelcomeDialog.close === 'function') betaWelcomeDialog.close(); else betaWelcomeDialog.removeAttribute('open');
-  toast('Welcome to the Wave beta. Start with the testing checklist in Settings.');
+  const button = $('#workspaceButton'); if (button) button.querySelector('strong').textContent = state.workspace.name;
+  toast('Workspace created. Invite your team from Settings.');
 });
 document.querySelectorAll('[data-close-beta-guide]').forEach((button) => button.addEventListener('click', () => {
   if (typeof betaWelcomeDialog.close === 'function') betaWelcomeDialog.close(); else betaWelcomeDialog.removeAttribute('open');
 }));
 attachHomeEvents();
+const workspaceButton = $('#workspaceButton');
+if (workspaceButton) workspaceButton.innerHTML = `<span class="workspace-icon">${escapeHtml(state.workspace.name.slice(0, 1).toUpperCase())}</span><span><strong>${escapeHtml(state.workspace.name)}</strong><small>${escapeHtml(state.workspace.type)}</small></span><span class="chevron">⌄</span>`;
+renderNotifications();
+processDueSchedules();
 try {
   if (!window.localStorage.getItem('wave-beta-onboarding-v1')) setTimeout(() => {
     if (typeof betaWelcomeDialog.showModal === 'function') betaWelcomeDialog.showModal(); else betaWelcomeDialog.setAttribute('open', '');
@@ -874,6 +1031,12 @@ async function initializeWaveCloud() {
   try {
     const result = await window.WaveCloud.init();
     cloudStatus = result.status;
+    const inviteCode = new URLSearchParams(window.location.search).get('invite');
+    if (inviteCode && cloudStatus.authenticated && window.WaveCloud.acceptInvitation) {
+      const invitedWorkspace = await window.WaveCloud.acceptInvitation(inviteCode);
+      window.history.replaceState({}, '', window.location.pathname);
+      if (invitedWorkspace) { window.localStorage.setItem(STATE_KEY, JSON.stringify(invitedWorkspace)); window.location.reload(); return; }
+    }
     if (result.remote) {
       const remote = JSON.stringify(result.remote); const local = window.localStorage.getItem(STATE_KEY);
       if (remote !== local) { window.localStorage.setItem(STATE_KEY, remote); window.location.reload(); return; }
