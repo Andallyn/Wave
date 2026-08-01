@@ -2,17 +2,21 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 
-const paths = ['README.md', 'index.html', 'plan.md', 'styles.css', 'app.js', 'package.json'];
+const paths = ['README.md', 'index.html', 'plan.md', 'styles.css', 'app.js', 'cloud.js', 'api/run-schedules.js', 'supabase/schema.sql', 'vercel.json', 'package.json'];
 const files = new Map(await Promise.all(paths.map(async (path) => [
   path,
   await readFile(new URL(`../${path}`, import.meta.url), 'utf8')
 ])));
 const html = files.get('index.html');
 const app = files.get('app.js');
+const cloud = files.get('cloud.js');
+const schema = files.get('supabase/schema.sql');
+const scheduler = files.get('api/run-schedules.js');
+const vercel = files.get('vercel.json');
 
 test('loads exactly one canonical application bundle and stylesheet', () => {
-  assert.equal((html.match(/<script src="app\.js\?v=4"/g) || []).length, 1);
-  assert.equal((html.match(/<link rel="stylesheet" href="styles\.css\?v=4"/g) || []).length, 1);
+  assert.equal((html.match(/<script src="app\.js\?v=9"/g) || []).length, 1);
+  assert.equal((html.match(/<link rel="stylesheet" href="styles\.css\?v=9"/g) || []).length, 1);
   assert.doesNotMatch(html, /wave-app-v\d+\.js/);
 });
 
@@ -260,15 +264,15 @@ test('contains no merge markers or leaked conflict branch labels', () => {
 test('provides safe beta onboarding, export, and feedback workflows', () => {
   ['betaWelcomeDialog', 'betaWelcomeForm', 'wave-beta-onboarding-v1', 'openBetaGuide', 'exportWorkspace', 'betaFeedbackForm', 'wave-workspace-export.json', 'wave-feedback-'].forEach((marker) => assert.match(app + html, new RegExp(marker)));
   assert.match(app, /This preview does not transmit it automatically/);
-  assert.match(html, /I will not enter confidential or financial credentials/);
+  assert.match(html, /I will not enter confidential credentials/);
   assert.match(html, /privacy\.html/);
-  assert.match(html, /terms\.html/);
+  assert.match(app + html, /terms\.html/);
 });
 
 test('provides a gated Supabase account and cloud workspace foundation', () => {
   ['Account & cloud', 'cloudSignInForm', 'cloudSignUpForm', 'saveCloudNow', 'importLocalCloud', 'cloudSignOut', 'initializeWaveCloud', 'WaveCloud'].forEach((marker) => assert.ok(app.includes(marker), marker));
   assert.match(html, /config\.js\?v=1/);
-  assert.match(html, /cloud\.js\?v=1/);
+  assert.match(html, /cloud\.js\?v=2/);
   assert.match(app, /service-role key/);
   assert.match(app, /scheduleSave\(state\)/);
 });
@@ -289,4 +293,25 @@ test('uses an authenticated server-side AI gateway with a safe demo fallback', (
   assert.match(app, /human review required/);
   assert.match(app, /AI fallback/);
   assert.match(app, /Demo draft created/);
+});
+
+test('provides shared workspaces, invitations, and enforced roles', () => {
+  ['workspace:', 'invitations:', 'Owner:', 'Manager:', 'Reviewer:', 'Viewer:', 'requirePermission', 'mutationIntent', 'stopImmediatePropagation', 'inviteMemberForm', 'data-member-role', 'data-cancel-invite'].forEach((marker) => assert.match(app, new RegExp(marker)));
+  ['workspace_members', 'workspace_invitations', 'bootstrap_wave_workspace', 'accept_wave_invitation', 'enable row level security', 'has_workspace_role'].forEach((marker) => assert.match(schema, new RegExp(marker)));
+  ['resolveWorkspace', 'createInvitation', 'acceptInvitation'].forEach((marker) => assert.match(cloud, new RegExp(marker)));
+});
+
+test('provides guided onboarding and expanded brand setup', () => {
+  ['Set up your Wave workspace', 'workspaceName', 'brandName', 'dailyBriefing'].forEach((marker) => assert.match(html, new RegExp(marker)));
+  ['Setup guide', 'onboarding.completedSteps', 'objectives', 'channels', 'restartOnboarding'].forEach((marker) => assert.match(app, new RegExp(marker)));
+});
+
+test('provides persistent schedules and actionable notifications', () => {
+  ['schedules:', 'notifications:', 'scheduleForm', 'runSchedule', 'processDueSchedules', 'renderNotifications', 'data-run-schedule', 'markAllNotificationsRead'].forEach((marker) => assert.match(app, new RegExp(marker)));
+  ['scheduled_jobs', 'notifications_unread_idx', 'scheduled_jobs_due_idx'].forEach((marker) => assert.match(schema, new RegExp(marker)));
+  assert.match(html, /id="notificationPanel" aria-live="polite"/);
+  ['CRON_SECRET', 'SUPABASE_SERVICE_ROLE_KEY', 'scheduled_jobs', 'workspace_members', 'notifications', 'next_run_at'].forEach((marker) => assert.match(scheduler, new RegExp(marker)));
+  assert.match(vercel, /\/api\/run-schedules/);
+  assert.match(vercel, /\*\/5 \* \* \* \*/);
+  assert.match(cloud, /markNotificationsRead/);
 });
